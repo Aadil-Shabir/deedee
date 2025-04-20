@@ -3,7 +3,7 @@
 import { Check } from "phosphor-react";
 import { useState } from "react";
 
-export function Pricing() {
+export function Pricing({onSelectPlan}: {onSelectPlan: (planId: string) => void}) {
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('annual');
   const [hoveredTier, setHoveredTier] = useState<string | null>(null);
 
@@ -72,7 +72,7 @@ export function Pricing() {
             Simple, Transparent Pricing
           </h2>
           <p className="text-zinc-300 max-w-3xl mx-auto mb-10">
-            Choose the plan that best fits your startup's current stage and needs.
+            Choose the plan that best fits your startups current stage and needs.
           </p>
 
           {/* Billing toggle */}
@@ -158,6 +158,7 @@ export function Pricing() {
               </ul>
               
               <button
+                onClick={() => onSelectPlan(tier.id)}
                 className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${
                   tier.popular 
                     ? 'bg-gradient-to-r from-violet-500 to-pink-500 text-white hover:shadow-lg hover:shadow-violet-500/30' 

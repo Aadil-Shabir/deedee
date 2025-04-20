@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface MarketTrend {
+export type MarketTrend = {
   id: string;
   name: string;
   growth: string;
@@ -10,7 +10,7 @@ interface MarketTrend {
   relevance: "High" | "Medium" | "Low";
 }
 
-interface MarketIntelligenceProps {
+ interface MarketIntelligenceProps {
   trends: MarketTrend[];
 }
 

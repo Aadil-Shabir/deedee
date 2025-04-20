@@ -15,7 +15,7 @@ export function InvestmentReport() {
       </div>
       
       <div className="flex items-center justify-center h-64">
-        <p className="text-lg text-zinc-400">No reports generated yet. Click "Generate Investment Report" to create your first report.</p>
+        <p className="text-lg text-zinc-400">No reports generated yet. Click Generate Investment Report to create your first report.</p>
       </div>
     </div>
   );

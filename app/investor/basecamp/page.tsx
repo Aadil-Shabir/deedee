@@ -3,9 +3,9 @@
 import { StatsCard } from "@/components/ui/investor/stats-card";
 import { PortfolioOverview } from "@/components/ui/investor/portfolio-overview";
 import { DealPipeline } from "@/components/ui/investor/deal-pipeline";
-import { MarketIntelligence } from "@/components/ui/investor/market-intelligence";
+import { MarketIntelligence, MarketTrend } from "@/components/ui/investor/market-intelligence";
 import { FounderEngagement } from "@/components/ui/investor/founder-engagement";
-import { ActivityDashboard } from "@/components/ui/investor/activity-dashboard";
+import { Activity, ActivityDashboard } from "@/components/ui/investor/activity-dashboard";
 
 export default function InvestorBasecamp() {
   // Sample data - in a real application, this would come from an API or database
@@ -29,7 +29,7 @@ export default function InvestorBasecamp() {
     { id: "4", name: "HealthConnect", stage: "Initial Review", match: 79, industry: "HealthTech", lastActivity: "08/05/2023" },
   ];
 
-  const marketTrends = [
+  const marketTrends: MarketTrend[] = [
     { id: "1", name: "AI integration in SaaS platforms", growth: "+24%", growthValue: 24, relevance: "High" },
     { id: "2", name: "Fintech consolidation", growth: "+8%", growthValue: 8, relevance: "Medium" },
     { id: "3", name: "Enterprise blockchain adoption", growth: "+15%", growthValue: 15, relevance: "Medium" },
@@ -179,7 +179,7 @@ export default function InvestorBasecamp() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <MarketIntelligence trends={marketTrends} />
           <ActivityDashboard 
-            activities={recentActivities}
+            activities={recentActivities as Activity[]}
             actionItems={actionItems}
           />
         </div>

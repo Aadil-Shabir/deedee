@@ -10,6 +10,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/supabase/supabase";
 import Link from "next/link";
 import { ArrowRight, Linkedin } from "lucide-react";
+import { signup } from "@/actions/auth";
+
 export default function SignUpPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -19,49 +21,49 @@ export default function SignUpPage() {
   const [role, setRole] = useState<"founder" | "investor">("founder");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
+  
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccess(null);
+
+    // Basic validation
+    if (password !== confirmPassword) {
+      setError("Passwords do not match");
+      setLoading(false);
+      return;
+    }
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // Using the server action instead of client-side Supabase
+      const result = await signup({
         email,
         password,
+        firstName,
+        lastName,
+        role
       });
-
-      if (error) throw error;
-
-      if (data.user) {
-        const userId = data.user.id;
-
-        // Step 1: Insert into user_roles
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert([
-            { user_id: userId, role: role },  // Default role: investor
-          ]);
-
-        if (roleError) throw roleError;
-
-        // Step 2: Update user metadata
-        const { error: metadataError } = await supabase.auth.updateUser({
-          data: {
-            role: role ,
-          },
-        });
-
-        if (metadataError) throw metadataError;
-        alert("Account created successfully, Confirrm email to continue.");
-        router.push("/auth/signin");
+      
+      if (result.success) {
+        setSuccess(result.message || "Account created successfully. Please check your email to confirm your account.");
+        // Navigate to the redirect URL from the server action after a short delay
+        setTimeout(() => {
+          router.push(result.redirectTo || "/auth/signin");
+        }, 2000); // Longer delay to show success message
+      } else {
+        setError(result.error || "Failed to create account");
       }
+      
     } catch (error: any) {
       setError(error.message);
     } finally {
       setLoading(false);
     }
   };
+  
   const handleGoogleSignUp = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -85,9 +87,17 @@ export default function SignUpPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?showRoleSelect=true`,
         },
       });
+
+       // give users to choose their role and proceed based on that 
+      //  const { data } = await supabase.auth.getUser();
+      //  const user = data.user;
+      //  if (user) {
+      //   const { data: userData, error: userDataError } = await supabase.from('user_roles').select('role').eq('user_id', user.id).single();
+      //   console.log(userData);
+      // }
       if (error) throw error;
     } catch (error: any) {
       setError(error.message);
@@ -221,7 +231,14 @@ export default function SignUpPage() {
               />
             </div>
             {error && (
-              <div className="text-red-500 text-sm text-center">{error}</div>
+              <div className="text-red-500 text-sm text-center bg-red-500/10 p-2 rounded-md">
+                {error}
+              </div>
+            )}
+            {success && (
+              <div className="text-green-500 text-sm text-center bg-green-500/10 p-2 rounded-md">
+                {success}
+              </div>
             )}
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Creating account..." : "Sign Up"}

@@ -92,7 +92,7 @@ export function InvestorList({ investors = [], onAddInvestor }: InvestorListProp
         <div className="py-8 text-center">
           <p className="text-zinc-400">No investors found</p>
           <p className="text-sm text-zinc-500 mt-1">
-            Can't find your investor? <button className="text-primary" onClick={() => setIsDialogOpen(true)}>Add your investor manually</button>
+            Can not find your investor? <button className="text-primary" onClick={() => setIsDialogOpen(true)}>Add your investor manually</button>
           </p>
         </div>
       )}

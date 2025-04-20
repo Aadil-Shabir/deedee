@@ -3,7 +3,7 @@
 import { Calendar, Eye, File, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-interface Activity {
+export type Activity = {
   id: string;
   type: "view" | "document" | "message";
   company: string;

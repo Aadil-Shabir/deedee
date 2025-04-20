@@ -2,7 +2,7 @@ import { createClient } from './server';
 import { redirect } from 'next/navigation';
 
 export async function getUser() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { session }, error } = await supabase.auth.getSession();
 
   if (error || !session) {
@@ -13,7 +13,7 @@ export async function getUser() {
 }
 
 export async function getUserProfile() {
-  const supabase = createClient();
+  const supabase =await  createClient();
   const user = await getUser();
 
   const { data: profile, error } = await supabase

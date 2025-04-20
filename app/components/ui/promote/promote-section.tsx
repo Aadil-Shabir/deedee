@@ -2,7 +2,12 @@
 
 import { useState } from "react";
 import { ProfileLinkCard } from "./profile-link-card";
-import { PricingTier, Feature } from "./pricing-tier";
+import { PricingTier } from "./pricing-tier";
+
+interface Feature {
+  text: string;
+  included: boolean;
+}
 
 const freeTierFeatures: Feature[] = [
   { text: "Public profile", included: true },
@@ -48,21 +53,21 @@ export function PromoteSection() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <PricingTier
-            name="Free"
+            id="Free"
+            title="Free"
             price="$0"
             description="Basic profile visibility to get you started"
-            features={freeTierFeatures}
-            isActive={selectedTier === "free"}
+            features={freeTierFeatures.map(f => f.text)}
+            isSelected={selectedTier === "free"}
             onSelect={() => handleSelectTier("free")}
           />
-          
           <PricingTier
-            name="Pro"
+            id="Pro"
+            title="Pro"
             price="$19/month"
             description="Enhanced visibility for maximum exposure"
-            highlightText="Most Popular"
-            features={proTierFeatures}
-            isActive={selectedTier === "pro"}
+            features={freeTierFeatures.map(f => f.text)}
+            isSelected={selectedTier === "pro"}
             onSelect={() => handleSelectTier("pro")}
           />
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { LinkIcon, CheckIcon, ClipboardCopyIcon } from "@heroicons/react/outline";
+import { LinkIcon, CheckIcon, ClipboardIcon } from "@heroicons/react/24/outline";
 
 interface ProfileLinkCardProps {
   profileUrl: string;
@@ -40,7 +40,7 @@ export function ProfileLinkCard({ profileUrl }: ProfileLinkCardProps) {
           {copied ? (
             <CheckIcon className="h-5 w-5 text-zinc-100" />
           ) : (
-            <ClipboardCopyIcon className="h-5 w-5 text-zinc-100" />
+            <ClipboardIcon className="h-5 w-5 text-zinc-100" />
           )}
         </button>
       </div>

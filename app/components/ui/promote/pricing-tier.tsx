@@ -24,7 +24,7 @@ export function PricingTier({
   onSelect,
 }: PricingTierProps) {
   return (
-    <div 
+    <div
       className={`
         relative flex flex-col p-6 bg-zinc-900/60 rounded-2xl backdrop-blur-sm transition-all duration-300
         ${isPopular ? 'border-2 border-violet-500/50 shadow-lg shadow-violet-500/20' : 'border border-zinc-800/50'}

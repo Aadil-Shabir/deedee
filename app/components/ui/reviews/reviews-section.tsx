@@ -24,7 +24,7 @@ export function ReviewsSection() {
           <h2 className="text-2xl font-bold text-white mb-4">No reviews yet</h2>
           
           <p className="text-lg text-zinc-400 mb-8">
-            You haven't received any recommendations yet. Invite partners, clients, or advisors to leave a recommendation for your company.
+            You have not received any recommendations yet. Invite partners, clients, or advisors to leave a recommendation for your company.
           </p>
           
           <Button className="bg-violet-600 hover:bg-violet-700 text-white px-6 py-6">

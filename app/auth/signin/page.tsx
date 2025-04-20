@@ -9,17 +9,20 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { supabase } from "@/supabase/supabase";
 import Link from "next/link";
 import { ArrowRight, Linkedin } from "lucide-react";
+import { login } from "@/actions/auth";
 
 export default function SignInPage() {
-  const [email, setEmail] = useState("");
+  const [email,  setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const router = useRouter();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccess(null);
 
     if (!email || !password) {
       setError("Please enter both email and password");
@@ -29,28 +32,24 @@ export default function SignInPage() {
     try {
       setLoading(true);
       
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        throw error;
+      // Using the server action instead of client-side Supabase
+      const result = await login({ email, password });
+      
+      if (result.success) {
+        setSuccess("Login successful, redirecting...");
+        // Navigate to the redirect URL from the server action
+        setTimeout(() => {
+          router.push(result.redirectTo || "/company/basecamp");
+        }, 500); // Short delay to show success message
+      } else {
+        setError(result.error || "Failed to sign in");
       }
-      console.log("Signed in successfully", data.user.user_metadata);
-      // No redirect needed - middleware will handle it
-      const role = data.user.user_metadata.role;
-      if (role === 'founder') {
-        router.push('/company/basecamp');
-      } else if (role === 'investor') {
-        router.push('/investor/basecamp');
-      }
+      
     } catch (error: any) {
       setError(error.message || "An error occurred during sign in");
     } finally {
       setLoading(false);
     }
-
   };
 
   const handleGoogleSignIn = async () => {
@@ -62,19 +61,32 @@ export default function SignInPage() {
         },
       });
       if (error) throw error;
-
-
     } catch (error: any) {
       setError(error.message);
     }
   };
 
+ 
   const handleLinkedInSignIn = async () => {
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?showRoleSelect=true`,
+        },
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      setError(error.message);
+    }
+  };
+
+  const handleLinkedInSignUp = async () => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'linkedin',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?showRoleSelect=true`,
         },
       });
       if (error) throw error;
@@ -162,6 +174,11 @@ export default function SignInPage() {
             {error && (
               <div className="text-sm text-red-500 bg-red-500/10 p-2 rounded-md">
                 {error}
+              </div>
+            )}
+            {success && (
+              <div className="text-sm text-green-500 bg-green-500/10 p-2 rounded-md">
+                {success}
               </div>
             )}
             <Button

@@ -120,7 +120,7 @@ export function PricingPlans() {
             
             <div className="flex items-start">
               <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span className="text-zinc-300">Included in DeeDee's Investor Newsletter for wider exposure</span>
+              <span className="text-zinc-300">Included in DeeDees Investor Newsletter for wider exposure</span>
             </div>
           </div>
         </div>
@@ -161,7 +161,7 @@ export function PricingPlans() {
             
             <div className="flex items-start">
               <Check className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
-              <span className="text-zinc-300">Real-time analytics & insights (Who's viewing, engaging, and interested)</span>
+              <span className="text-zinc-300">Real-time analytics & insights (Who is viewing, engaging, and interested)</span>
             </div>
             
             <div className="flex items-start">
