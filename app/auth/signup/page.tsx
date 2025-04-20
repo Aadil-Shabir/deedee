@@ -7,11 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { supabase } from "@/supabase/supabase";
+import { createClient } from "@/supabase/supabase";
 import Link from "next/link";
 import { ArrowRight, Linkedin } from "lucide-react";
 import { signup } from "@/actions/auth";
 
+const supabase = createClient();
 export default function SignUpPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

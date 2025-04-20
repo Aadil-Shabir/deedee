@@ -1,5 +1,7 @@
-import { supabase } from '@/supabase/supabase';
+import { createClient } from '@/supabase/supabase';
 import { User } from '@supabase/supabase-js';
+
+const supabase = createClient();  
 
 // Helper to convert base64 to a file blob
 export const dataURLtoFile = (dataurl: string, filename: string): File => {

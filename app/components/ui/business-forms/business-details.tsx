@@ -10,8 +10,10 @@ import {
 } from "@/components/ui/select";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
-import { supabase } from "@/supabase/supabase";
+import { createClient } from "@/supabase/supabase";
 
+
+const supabase = createClient();
 interface BusinessDetailsProps {
   onNext: () => void;
   onBack: () => void;

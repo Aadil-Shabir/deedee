@@ -5,7 +5,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
-import { supabase } from "@/supabase/supabase";
+import { createClient } from "@/supabase/supabase";
+
+const supabase = createClient();
 
 interface BasicInfoProps {
   onNext: () => void;

@@ -11,7 +11,9 @@ import { ImageCropper } from "@/components/ui/image-cropper";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
 import { uploadProfilePicture, saveProfileInfo } from "@/lib/supabase-utils";
-import { supabase } from "@/supabase/supabase";
+import { createClient } from "@/supabase/supabase";
+
+const supabase = createClient();
 
 const ProfileInfo = () => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -29,29 +31,43 @@ const ProfileInfo = () => {
 
   const { user, loading } = useUser();
   const { toast } = useToast();
-
+  
+  console.log('user', user);  
   // Load user profile data
   useEffect(() => {
     async function loadProfileData() {
+      console.log("jfnjsdnfjn")
       if (!user) return;
       
+      setIsLoading(true);
       try {
-        setIsLoading(true);
+        console.log('user', user);
         
-        // Get profile data
+        // Get profile data from supabase
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', user.id)
           .single();
+
+        console.log('profileData', profileData);
+
+        // For new users with no profile data, populate from metadata
+        if (!profileData) {
+          const metadata = user.user_metadata;
+          if (metadata) {
+            setFirstName(metadata.first_name || '');
+            setLastName(metadata.last_name || '');
+            setEmail(user.email || '');
+          }
+        }
         
-        if (profileError) {
+        if (profileError && profileError.code !== 'PGRST116') {
           console.error('Error loading profile data:', profileError);
-          return;
         }
         
         if (profileData) {
-          console.log('profileData');
+          console.log('profileData found');
           console.log(profileData.profile_picture_url);
           // Set form fields with profile data
           setFirstName(profileData.first_name || '');
@@ -74,10 +90,9 @@ const ProfileInfo = () => {
       }
     }
     
-    if (!loading) {
       loadProfileData();
-    }
-  }, [user, loading]);
+    
+  }, [user]);
 
   // Handle file selection for cropping
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
