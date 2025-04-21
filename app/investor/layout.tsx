@@ -23,9 +23,9 @@ const sidebarItems = [
   { name: "Profile", icon: UserCircle, href: "/investor/profile" },
   { name: "Portfolio", icon: Briefcase, href: "/investor/portfolio" },
   { name: "Dealflow", icon: FileText, href: "/investor/dealflow" },
-  { name: "Contacts", icon: Users, href: "/investor/contacts" },
-  { name: "Calendar", icon: Calendar, href: "/investor/calendar" },
-  { name: "Finances", icon: DollarSign, href: "/investor/finances" },
+  { name: "Pulse", icon: Users, href: "/investor/pulse" },
+  { name: "learning", icon: Calendar, href: "/investor/learning" },
+  { name: "Files", icon: DollarSign, href: "/investor/files" },
   { name: "Settings", icon: Settings, href: "/investor/settings" },
 ];
 
