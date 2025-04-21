@@ -35,7 +35,6 @@ export function DealPipeline({ companies }: DealPipelineProps) {
     if (match >= 70) return "bg-blue-600";
     return "bg-blue-500";
   };
-
   const formatDate = (dateString: string) => {
     const [day, month, year] = dateString.split("/");
     return `${day}/${month}/${year}`;

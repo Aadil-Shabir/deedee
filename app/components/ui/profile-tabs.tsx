@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-const tabItems = [
+const defaultTabItems = [
   { id: "profile", label: "Profile" },
   { id: "business", label: "Business" },
   { id: "team", label: "Team" },
@@ -13,14 +13,23 @@ const tabItems = [
   { id: "match", label: "Match" },
 ];
 
+interface TabItem {
+  id: string;
+  label: string;
+}
+
 interface ProfileTabsProps {
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  tabs?: TabItem[];
 }
 
-export function ProfileTabs({ activeTab, onTabChange }: ProfileTabsProps) {
+export function ProfileTabs({ activeTab, onTabChange, tabs }: ProfileTabsProps) {
+  // Use custom tabs if provided, otherwise use default tabs
+  const tabItems = tabs || defaultTabItems;
+  
   // Define special tabs that use violet color
-  const specialTabs = ["promote", "reports", "reviews", "match"];
+  const specialTabs = ["promote", "reports", "reviews", "match", "analytics"];
   
   return (
     <div className="w-full bg-zinc-900 border-b border-zinc-800">

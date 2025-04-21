@@ -14,7 +14,7 @@ const updateTypes: Record<string, UpdateType> = {
   "Partnership": { type: "Partnership", color: "text-blue-400" },
 };
 
-interface CompanyUpdate {
+export type CompanyUpdate = {
   id: string;
   company: string;
   date: string;
@@ -22,7 +22,7 @@ interface CompanyUpdate {
   content: string;
 }
 
-interface Meeting {
+export type Meeting = {
   id: string;
   title: string;
   company: string;
