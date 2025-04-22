@@ -12,6 +12,7 @@ import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
 import { uploadProfilePicture, saveProfileInfo } from "@/lib/supabase-utils";
 import { createClient } from "@/supabase/supabase";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const supabase = createClient();
 
@@ -210,6 +211,9 @@ const ProfileInfo = () => {
     }
   };
 
+  const Fndata = [
+    "COO", "CEO", "CMO", "CTO","Advisor", "VP", "Founder", "Co-Founder", "Other"
+  ]
   return (
     <>
       {tempImageFile && (
@@ -234,15 +238,19 @@ const ProfileInfo = () => {
               <div className="flex items-center gap-6">
                 <div className="relative h-24 w-24 overflow-hidden rounded-full border border-border">
                   {profilePicture ? (
+                    
                     <Image 
                       src={profilePicture} 
                       alt="Profile picture" 
                       className="object-cover"
                       fill
+                      onClick={() => document.getElementById('profile-picture')?.click()}
                     />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center bg-violet-950/20 text-muted-foreground">
+                      <Button onClick={() => document.getElementById('profile-picture')?.click()}>
                       <span className="text-xs">No image</span>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -291,13 +299,23 @@ const ProfileInfo = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="function">Function <span className="text-red-500">*</span></Label>
-                <Input
-                  id="function"
+                <Select
                   value={companyFunction}
-                  onChange={(e) => setCompanyFunction(e.target.value)}
-                  placeholder="E.g. CEO, CTO, etc."
+                  onValueChange={setCompanyFunction}
                   required
-                />
+                >
+                  <SelectTrigger   id="function">
+                    <SelectValue placeholder="Select your function..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                       <SelectLabel>Common Functions</SelectLabel>
+                      {Fndata.map((item) => (
+                        <SelectItem key={item} value={item}>{item}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email <span className="text-red-500">*</span></Label>
