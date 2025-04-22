@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -168,10 +170,75 @@ export function BusinessDetails({ onNext, onBack }: BusinessDetailsProps) {
                 <SelectValue placeholder="Select country" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="us">United States</SelectItem>
-                <SelectItem value="uk">United Kingdom</SelectItem>
-                <SelectItem value="ca">Canada</SelectItem>
-                {/* Add more countries as needed */}
+                <SelectGroup>
+                  <SelectLabel>Countries</SelectLabel>
+                  <div className="px-3 pb-2">
+                    <input
+                      className="flex h-9 w-full rounded-md border border-zinc-700 bg-zinc-800/50 px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-zinc-700"
+                      placeholder="Search country..."
+                      onChange={(e) => {
+                        const input = e.target as HTMLInputElement;
+                        const searchBox = input.closest('.select-content');
+                        const items = searchBox?.querySelectorAll('.select-item');
+                        items?.forEach(item => {
+                          if (item.textContent?.toLowerCase().includes(input.value.toLowerCase())) {
+                            item.classList.remove('hidden');
+                          } else {
+                            item.classList.add('hidden');
+                          }
+                        });
+                      }}
+                    />
+                  </div>
+                  <SelectItem value="af">Afghanistan</SelectItem>
+                  <SelectItem value="al">Albania</SelectItem>
+                  <SelectItem value="dz">Algeria</SelectItem>
+                  <SelectItem value="ar">Argentina</SelectItem>
+                  <SelectItem value="au">Australia</SelectItem>
+                  <SelectItem value="at">Austria</SelectItem>
+                  <SelectItem value="bd">Bangladesh</SelectItem>
+                  <SelectItem value="be">Belgium</SelectItem>
+                  <SelectItem value="br">Brazil</SelectItem>
+                  <SelectItem value="ca">Canada</SelectItem>
+                  <SelectItem value="cn">China</SelectItem>
+                  <SelectItem value="co">Colombia</SelectItem>
+                  <SelectItem value="dk">Denmark</SelectItem>
+                  <SelectItem value="eg">Egypt</SelectItem>
+                  <SelectItem value="fr">France</SelectItem>
+                  <SelectItem value="de">Germany</SelectItem>
+                  <SelectItem value="gr">Greece</SelectItem>
+                  <SelectItem value="in">India</SelectItem>
+                  <SelectItem value="id">Indonesia</SelectItem>
+                  <SelectItem value="ie">Ireland</SelectItem>
+                  <SelectItem value="il">Israel</SelectItem>
+                  <SelectItem value="it">Italy</SelectItem>
+                  <SelectItem value="jp">Japan</SelectItem>
+                  <SelectItem value="my">Malaysia</SelectItem>
+                  <SelectItem value="mx">Mexico</SelectItem>
+                  <SelectItem value="nl">Netherlands</SelectItem>
+                  <SelectItem value="nz">New Zealand</SelectItem>
+                  <SelectItem value="ng">Nigeria</SelectItem>
+                  <SelectItem value="no">Norway</SelectItem>
+                  <SelectItem value="pk">Pakistan</SelectItem>
+                  <SelectItem value="ph">Philippines</SelectItem>
+                  <SelectItem value="pl">Poland</SelectItem>
+                  <SelectItem value="pt">Portugal</SelectItem>
+                  <SelectItem value="ru">Russia</SelectItem>
+                  <SelectItem value="sa">Saudi Arabia</SelectItem>
+                  <SelectItem value="sg">Singapore</SelectItem>
+                  <SelectItem value="za">South Africa</SelectItem>
+                  <SelectItem value="kr">South Korea</SelectItem>
+                  <SelectItem value="es">Spain</SelectItem>
+                  <SelectItem value="se">Sweden</SelectItem>
+                  <SelectItem value="ch">Switzerland</SelectItem>
+                  <SelectItem value="tw">Taiwan</SelectItem>
+                  <SelectItem value="th">Thailand</SelectItem>
+                  <SelectItem value="tr">Turkey</SelectItem>
+                  <SelectItem value="ae">UAE</SelectItem>
+                  <SelectItem value="gb">United Kingdom</SelectItem>
+                  <SelectItem value="us">United States</SelectItem>
+                  <SelectItem value="vn">Vietnam</SelectItem>
+                </SelectGroup>
               </SelectContent>
             </Select>
           </div>
