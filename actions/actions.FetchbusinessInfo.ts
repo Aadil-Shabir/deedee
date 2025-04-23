@@ -12,6 +12,15 @@ interface BusinessData {
   logoUrl: string | null;
 }
 
+interface BusinessDetailsData {
+  headquartersLocation: string;
+  incorporationDate: string;
+  businessType: string;
+  salesType: string;
+  businessStage: string;
+  businessModel: string;
+}
+
 /**
  * Fetches basic business information for a logged-in user
  * 
@@ -77,6 +86,77 @@ export async function fetchBusinessInfo(userId: string) {
     
   } catch (error) {
     console.error('Error in fetchBusinessInfo:', error);
+    return { success: false, message: 'An unexpected error occurred' };
+  }
+}
+
+/**
+ * Fetches business details for a logged-in user
+ */
+export async function fetchBusinessDetails(userId: string) {
+  console.log("fetchBusinessDetails called with userId:", userId);
+  const supabase = await createClient();
+  
+  try {
+    // Get company ID for this user
+    const { data: companies, error: companyError } = await supabase
+      .from("companies")
+      .select("id")
+      .eq("owner_id", userId);
+      
+    if (companyError) {
+      console.error('Error fetching companies:', companyError);
+      return { success: false, message: 'Failed to load company information' };
+    }
+    
+    if (!companies || companies.length === 0) {
+      return { 
+        success: true, 
+        data: null,
+        message: 'No company found for this user' 
+      };
+    }
+    
+    // Use the first company
+    const companyId = companies[0].id;
+    
+    // Get business details
+    const { data, error } = await supabase
+      .from("business_details")
+      .select("*")
+      .eq("company_id", companyId)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error fetching business details:', error);
+      return { success: false, message: 'Failed to load business details' };
+    }
+    
+    if (!data) {
+      return { 
+        success: true, 
+        data: null,
+        message: 'No business details found' 
+      };
+    }
+    
+    console.log("Found business details:", data);
+    
+    return {
+      success: true,
+      data: {
+        headquartersLocation: data.headquarters_location || '',
+        incorporationDate: data.incorporation_date || '',
+        businessType: data.business_type || '',
+        salesType: data.sales_type || '',
+        businessStage: data.business_stage || '',
+        businessModel: data.business_model || ''
+      },
+      message: 'Business details loaded successfully'
+    };
+    
+  } catch (error) {
+    console.error('Error in fetchBusinessDetails:', error);
     return { success: false, message: 'An unexpected error occurred' };
   }
 }

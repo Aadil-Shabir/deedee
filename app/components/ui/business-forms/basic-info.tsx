@@ -29,6 +29,10 @@ export function BasicInfo({ onNext }: BasicInfoProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    console.log("user effect for loading data is being called")
+    console.log("Current user:", user);
+    console.log("Current loading:", loading);
+  
     async function loadBusinessData() {
       if (!user) {
         console.log("No user, ending loading state");
@@ -41,22 +45,22 @@ export function BasicInfo({ onNext }: BasicInfoProps) {
       
       try {
         console.log("Fetching business info for user:", user.id);
-        // Use the server action to fetch business info
         const result = await fetchBusinessInfo(user.id);
         console.log("Business info result:", result);
 
         if (result.success && result.data) {
-          console.log("Populating form with data");
+          console.log("Populating form with data:", result.data);
           const data = result.data;
 
-          // Populate form fields with data
+          // Explicitly set each field with fallbacks
           setCompanyName(data.companyName || "");
           setWebUrl(data.webUrl || "");
           setShortDescription(data.shortDescription || "");
-          setProductsCount(data.productsCount?.toString() || "");
+          setProductsCount(data.productsCount ? data.productsCount.toString() : "");
           setFullDescription(data.fullDescription || "");
-
+          
           if (data.logoUrl) {
+            console.log("Setting company logo:", data.logoUrl);
             setCompanyLogo(data.logoUrl);
           }
         } else {
@@ -64,34 +68,28 @@ export function BasicInfo({ onNext }: BasicInfoProps) {
         }
       } catch (error) {
         console.error("Error in loadBusinessData:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load company data",
-          variant: "destructive",
-        });
       } finally {
         console.log("Ending loading state");
         setIsLoading(false);
       }
     }
 
-    console.log("useEffect triggered, loading state:", loading);
-    if (!loading) {
+    if (user && !loading) {
       loadBusinessData();
     }
-  }, [user, loading, toast]);
+  }, [user]);
 
   // Safety timeout to prevent infinite loading
-  useEffect(() => {
-    if (isLoading) {
-      const timer = setTimeout(() => {
-        console.log("Safety timeout: forcing loading state to end after 5 seconds");
-        setIsLoading(false);
-      }, 5000);
+  // useEffect(() => {
+  //   if (isLoading) {
+  //     const timer = setTimeout(() => {
+  //       console.log("Safety timeout: forcing loading state to end after 5 seconds");
+  //       setIsLoading(false);
+  //     }, 5000);
       
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading]);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [isLoading]);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -183,6 +181,8 @@ export function BasicInfo({ onNext }: BasicInfoProps) {
         .from("companies")
         .select("id")
         .eq("owner_id", user.id);
+
+
 
       const companyExists = existingCompanies && existingCompanies.length > 0;
 

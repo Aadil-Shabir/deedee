@@ -23,6 +23,7 @@ export interface TeamMemberData {
   email: string;
   function: string;
   linkedinUrl: string;
+  isFounder: boolean; 
 }
 
 const functionOptions = [
@@ -49,6 +50,7 @@ export function TeamMemberForm({ onSubmit, onCancel }: TeamMemberFormProps) {
     email: "",
     function: "",
     linkedinUrl: "",
+    isFounder: false,
   });
 
   const handleSubmit = (e: React.FormEvent) => {

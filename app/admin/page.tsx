@@ -31,7 +31,7 @@ export default function AdminDashboard() {
     },
     onDrop: async (acceptedFiles) => {
       // Handle file upload here
-      console.log(acceptedFiles);
+      // console.log(acceptedFiles);
     }
   });
 

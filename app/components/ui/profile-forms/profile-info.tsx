@@ -33,7 +33,7 @@ const ProfileInfo = () => {
   const { user, loading } = useUser();
   const { toast } = useToast();
   
-  console.log('user', user);  
+  // console.log('user', user);  
   // Load user profile data
   useEffect(() => {
     async function loadProfileData() {
@@ -42,7 +42,7 @@ const ProfileInfo = () => {
       
       setIsLoading(true);
       try {
-        console.log('user', user);
+        // console.log('user', user);
         
         // Get profile data from supabase
         const { data: profileData, error: profileError } = await supabase
@@ -51,7 +51,7 @@ const ProfileInfo = () => {
           .eq('id', user.id)
           .single();
 
-        console.log('profileData', profileData);
+        // console.log('profileData', profileData);
 
         // For new users with no profile data, populate from metadata
         if (!profileData) {

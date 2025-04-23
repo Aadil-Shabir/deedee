@@ -13,6 +13,7 @@ import {
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
 import { createClient } from "@/supabase/supabase";
+import { fetchBusinessDetails } from "@/actions/actions.FetchbusinessInfo";
 
 const supabase = createClient();
 interface BusinessDetailsProps {
@@ -138,56 +139,28 @@ export function BusinessDetails({ onNext, onBack }: BusinessDetailsProps) {
       if (!user) return;
 
       try {
-        // 1. Fetch ALL companies for this user
-        const { data: companies, error: companyError } = await supabase
-          .from("companies")
-          .select("id")
-          .eq("owner_id", user.id);
-
-        if (companyError) {
-          console.error("Error fetching company ID:", companyError);
-          return;
-        }
-
-        if (!companies || companies.length === 0) {
-          console.log("No company found for this user");
-          return;
-        }
-
-        // Use the first company found
-        const companyId = companies[0].id;
-
-        // If multiple companies exist, we'll just work with the first one
-        if (companies.length > 1) {
-          console.warn(`Multiple companies found for user ${user.id}. Using the first one.`);
-        }
-
-        // 2. Fetch business details
-        const { data, error } = await supabase
-          .from("business_details")
-          .select("*")
-          .eq("company_id", companyId)
-          .maybeSingle(); // Use maybeSingle instead of single
-
-        if (error) {
-          console.error("Error loading business details:", error);
-          return;
-        }
-
-        if (data) {
-          setHeadquarters(data.headquarters_location || "");
-          setIncorporationDate(data.incorporation_date || "");
-          setBusinessType(data.business_type || "");
-          setSalesType(data.sales_type || "");
-          setBusinessStage(data.business_stage || "");
-          setBusinessModel(data.business_model || "");
+        console.log("Fetching business details for user:", user.id);
+        const result = await fetchBusinessDetails(user.id);
+        console.log("Business details result:", result);
+        
+        if (result.success && result.data) {
+          const data = result.data;
+          
+          setHeadquarters(data.headquartersLocation || "");
+          setIncorporationDate(data.incorporationDate || "");
+          setBusinessType(data.businessType || "");
+          setSalesType(data.salesType || "");
+          setBusinessStage(data.businessStage || "");
+          setBusinessModel(data.businessModel || "");
+          
+          console.log("Form fields populated with existing data");
         }
       } catch (error) {
         console.error("Error in loadBusinessDetails:", error);
       }
     }
 
-    if (!loading) {
+    if (!loading && user) {
       loadBusinessDetails();
     }
   }, [user, loading]);

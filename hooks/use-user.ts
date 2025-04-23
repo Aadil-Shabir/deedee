@@ -11,10 +11,19 @@ export function useUser() {
   
   useEffect(() => {
     async function getUser() {
-      // Set up listener for auth changes
+      // First, get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Initial session check:', session ? 'Found session' : 'No session');
+      
+      // Update state based on current session
+      setUser(session?.user || null);
+      setLoading(false); // Always set loading to false after initial check
+      
+      // Set up listener for future auth changes
       const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-        console.log('session', session);
+        console.log('Auth state changed:', _event, session ? 'has session' : 'no session');
         setUser(session?.user || null);
+        // Loading is already false at this point
       });
       
       return () => {
