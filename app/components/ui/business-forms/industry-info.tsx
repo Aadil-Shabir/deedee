@@ -1,18 +1,16 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { X } from "lucide-react";
+import { X, Check } from "lucide-react";
 import { createClient } from "@/supabase/supabase";
 import { useToast } from "@/components/ui/toast-provider";
-import { saveCompanyIndustries } from "@/actions/actions.industries";
-import { useUser } from "@/hooks/use-user";
-import { getCompanyIndustries } from "@/actions/actions.industries";
+import { useCompanyContext } from "@/context/company-context";
 
 interface IndustryInfoProps {
-  onBack: () => void;
-  onSubmit: () => void;
+  onBack?: () => void;
+  onSubmit?: () => void;
 }
 
 interface IndustryCategory {
@@ -28,25 +26,34 @@ interface IndustrySubcategory {
 
 const supabase = createClient();
 
-export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
-  const { user } = useUser();
-  const [isSaving, setIsSaving] = useState(false);
+export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps = {}) {
+  const { 
+    isLoading,
+    isSubmitting,
+    formMode,
+    selectedIndustryCategories,
+    handleCategorySelect,
+    handleRemoveCategory,
+    submitIndustryInfo,
+    previousStep,
+    backToCompanyList
+  } = useCompanyContext();
 
   const [categories, setCategories] = useState<IndustryCategory[]>([]);
   const [subcategories, setSubcategories] = useState<IndustrySubcategory[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const [selectedCategories, setSelectedCategories] = useState<{
-    [key: string]: string[];
-  }>({});
+  const [loadingCategories, setLoadingCategories] = useState(true);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
+  
   const { toast } = useToast();
+  const didInitialLoad = useRef(false);
 
-  // Fetch industry categories and subcategories from Supabase
+  // Fetch industry categories and subcategories from Supabase only once
   useEffect(() => {
     async function fetchIndustryData() {
+      if (didInitialLoad.current) return; // Only load once
+      
       try {
-        setLoading(true);
+        setLoadingCategories(true);
 
         // Fetch categories
         const { data: categoriesData, error: categoriesError } = await supabase
@@ -64,6 +71,14 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
 
         setCategories(categoriesData || []);
         setSubcategories(subcategoriesData || []);
+        
+        // Open first selected category if any
+        const selectedCategoryIds = Object.keys(selectedIndustryCategories || {});
+        if (selectedCategoryIds.length > 0) {
+          setOpenCategory(selectedCategoryIds[0]);
+        }
+        
+        didInitialLoad.current = true;
       } catch (error) {
         console.error("Error fetching industry data:", error);
         toast({
@@ -72,38 +87,42 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
           variant: "destructive",
         });
       } finally {
-        setLoading(false);
+        setLoadingCategories(false);
       }
     }
 
     fetchIndustryData();
-  }, [toast]);
+  }, [toast]); // Remove selectedIndustryCategories from the dependency array
 
+  // Update open category when selected categories change
   useEffect(() => {
-    async function loadSavedIndustries() {
-      if (!user) return;
-
-      try {
-        const result = await getCompanyIndustries(user.id);
-
-        if (result.success && result.data) {
-          setSelectedCategories(result.data);
-        }
-      } catch (error) {
-        console.error("Error loading saved industry data:", error);
+    // Open first selected category if any and no category is currently open
+    if (openCategory === null) {
+      const selectedCategoryIds = Object.keys(selectedIndustryCategories || {});
+      if (selectedCategoryIds.length > 0) {
+        setOpenCategory(selectedCategoryIds[0]);
       }
     }
-
-    if (user && !loading) {
-      loadSavedIndustries();
-    }
-  }, [user, loading]);
+  }, [selectedIndustryCategories, openCategory]);
 
   const handleCategoryClick = (categoryId: string) => {
+    const selectedCategories = selectedIndustryCategories || {};
+    
     if (Object.keys(selectedCategories).length >= 3 && !selectedCategories[categoryId]) {
+      toast({
+        title: "Limit Reached",
+        description: "You can select up to 3 industry categories",
+        variant: "default",
+      });
       return; // Don't allow more than 3 categories
     }
 
+    // If this category isn't selected yet, add it
+    if (!selectedCategories[categoryId]) {
+      handleCategorySelect(categoryId, []);
+    }
+    
+    // Toggle category open/close state
     if (openCategory === categoryId) {
       setOpenCategory(null);
     } else {
@@ -112,35 +131,19 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
   };
 
   const handleSubCategorySelect = (categoryId: string, subcategoryId: string) => {
-    setSelectedCategories((prev) => {
-      const updatedCategories = { ...prev };
-
-      if (!updatedCategories[categoryId]) {
-        updatedCategories[categoryId] = [];
-      }
-
-      if (updatedCategories[categoryId].includes(subcategoryId)) {
-        updatedCategories[categoryId] = updatedCategories[categoryId].filter(
-          (id) => id !== subcategoryId
-        );
-
-        if (updatedCategories[categoryId].length === 0) {
-          delete updatedCategories[categoryId];
-        }
-      } else {
-        updatedCategories[categoryId] = [...updatedCategories[categoryId], subcategoryId];
-      }
-
-      return updatedCategories;
-    });
-  };
-
-  const removeCategory = (categoryId: string) => {
-    setSelectedCategories((prev) => {
-      const updated = { ...prev };
-      delete updated[categoryId];
-      return updated;
-    });
+    // Get current subcategories for this category
+    const currentSubcategories = selectedIndustryCategories[categoryId] || [];
+    
+    // Toggle the subcategory
+    let updatedSubcategories: string[];
+    if (currentSubcategories.includes(subcategoryId)) {
+      updatedSubcategories = currentSubcategories.filter(id => id !== subcategoryId);
+    } else {
+      updatedSubcategories = [...currentSubcategories, subcategoryId];
+    }
+    
+    // Update context with the new selection
+    handleCategorySelect(categoryId, updatedSubcategories);
   };
 
   // Helper function to get subcategory name by ID
@@ -148,7 +151,7 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
     const subcategory = subcategories.find((sub) => sub.id === subcategoryId);
     if (!subcategory) {
       console.warn(`Subcategory not found for ID: ${subcategoryId}`);
-      return `Unknown Subcategory`;
+      return `Unknown Subcategory (${subcategoryId})`;
     }
     return subcategory.subcategory_name;
   };
@@ -158,7 +161,7 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
     const category = categories.find((cat) => cat.id === categoryId);
     if (!category) {
       console.warn(`Category not found for ID: ${categoryId}`);
-      return `Unknown Category`;
+      return `Unknown Category (${categoryId})`;
     }
     return category.label;
   };
@@ -169,56 +172,36 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
   };
 
   const handleSubmit = async () => {
-    if (!user) {
+    // Make sure at least one category is selected
+    if (Object.keys(selectedIndustryCategories).length === 0) {
       toast({
-        title: "Error",
-        description: "You must be logged in to save industry information",
+        title: "Selection Required",
+        description: "Please select at least one industry category",
         variant: "destructive",
       });
       return;
     }
-
-    if (Object.keys(selectedCategories).length === 0) {
-      toast({
-        title: "Error",
-        description: "Please select at least one industry",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSaving(true);
-
-    try {
-      const result = await saveCompanyIndustries(user.id, selectedCategories);
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: "Industry information saved successfully",
-          variant: "success",
-        });
-        onSubmit(); // Continue with the form flow
+    
+    const success = await submitIndustryInfo();
+    
+    if (success) {
+      if (onSubmit) {
+        onSubmit();
       } else {
-        toast({
-          title: "Error",
-          description: result.message || "Failed to save industry information",
-          variant: "destructive",
-        });
+        backToCompanyList();
       }
-    } catch (error) {
-      console.error("Error saving industry information:", error);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
     }
   };
 
-  if (loading) {
+  const handleBackAction = () => {
+    if (onBack) {
+      onBack();
+    } else {
+      previousStep();
+    }
+  };
+
+  if (isLoading || loadingCategories) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-zinc-400">Loading industry data...</div>
@@ -230,29 +213,30 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
     <div className="space-y-6">
       <div className="space-y-4">
         <Label className="text-lg font-medium text-zinc-200">
-          Select up to 3 industries that best describe your business
+          Select up to 3 industry combinations
         </Label>
         <p className="text-sm text-zinc-400">
-          {3 - Object.keys(selectedCategories).length} categories remaining
+          You can select up to 3 industry items in total (each category or subcategory counts as one item)
         </p>
 
         {/* Selected Categories with Subcategories */}
         <div className="space-y-3">
-          {Object.entries(selectedCategories).map(([categoryId, subcategoryIds]) => {
+          {Object.entries(selectedIndustryCategories || {}).map(([categoryId, subcategoryIds]) => {
             return (
               <div key={categoryId} className="space-y-2">
                 <div className="flex items-center gap-2">
                   <div className="bg-primary/20 text-primary rounded-lg px-3 py-1.5 text-sm flex items-center gap-2">
                     <span>{getCategoryLabel(categoryId)}</span>
                     <button
-                      onClick={() => removeCategory(categoryId)}
+                      onClick={() => handleRemoveCategory(categoryId)}
                       className="hover:text-primary/80"
+                      type="button"
                     >
                       <X className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
-                {subcategoryIds.length > 0 && (
+                {subcategoryIds && subcategoryIds.length > 0 && (
                   <div className="flex flex-wrap gap-2 ml-4">
                     {subcategoryIds.map((subcategoryId) => (
                       <div
@@ -263,6 +247,7 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
                         <button
                           onClick={() => handleSubCategorySelect(categoryId, subcategoryId)}
                           className="hover:text-zinc-400"
+                          type="button"
                         >
                           <X className="h-3 w-3" />
                         </button>
@@ -276,27 +261,32 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
         </div>
 
         {/* Categories List */}
-        <div className="space-y-2">
+        <div className="space-y-2 mt-6">
+          <h3 className="text-zinc-300 font-medium">Available Industry Categories</h3>
           {categories.map((category) => (
             <div key={category.id} className="space-y-2">
               <button
+                type="button"
                 onClick={() => handleCategoryClick(category.id)}
-                className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                  selectedCategories[category.id]
+                className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between ${
+                  selectedIndustryCategories && selectedIndustryCategories[category.id]
                     ? "bg-primary/20 text-primary"
                     : "bg-zinc-800/50 text-zinc-200 hover:bg-zinc-800"
                 } ${
-                  Object.keys(selectedCategories).length >= 3 &&
-                  !selectedCategories[category.id]
+                  selectedIndustryCategories && Object.keys(selectedIndustryCategories).length >= 3 &&
+                  !(selectedIndustryCategories && selectedIndustryCategories[category.id])
                     ? "opacity-50 cursor-not-allowed"
                     : ""
                 }`}
                 disabled={
-                  Object.keys(selectedCategories).length >= 3 &&
-                  !selectedCategories[category.id]
+                  selectedIndustryCategories && Object.keys(selectedIndustryCategories).length >= 3 &&
+                  !(selectedIndustryCategories && selectedIndustryCategories[category.id])
                 }
               >
-                {category.label}
+                <span>{category.label}</span>
+                {selectedIndustryCategories && selectedIndustryCategories[category.id] && (
+                  <Check className="h-4 w-4" />
+                )}
               </button>
 
               {/* Sub-categories */}
@@ -304,15 +294,21 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
                 <div className="ml-4 grid grid-cols-2 gap-2 p-2">
                   {getSubcategoriesForCategory(category.id).map((subcategory) => (
                     <button
+                      type="button"
                       key={subcategory.id}
                       onClick={() => handleSubCategorySelect(category.id, subcategory.id)}
-                      className={`px-3 py-2 text-sm rounded-md text-left transition-colors ${
-                        selectedCategories[category.id]?.includes(subcategory.id)
+                      className={`px-3 py-2 text-sm rounded-md text-left transition-colors flex items-center justify-between ${
+                        selectedIndustryCategories && 
+                        selectedIndustryCategories[category.id]?.includes(subcategory.id)
                           ? "bg-primary/20 text-primary"
                           : "bg-zinc-800/30 text-zinc-300 hover:bg-zinc-800/50"
                       }`}
                     >
-                      {subcategory.subcategory_name}
+                      <span>{subcategory.subcategory_name}</span>
+                      {selectedIndustryCategories && 
+                       selectedIndustryCategories[category.id]?.includes(subcategory.id) && (
+                        <Check className="h-3 w-3" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -326,17 +322,22 @@ export function IndustryInfo({ onBack, onSubmit }: IndustryInfoProps) {
         <Button
           type="button"
           variant="outline"
-          onClick={onBack}
+          onClick={handleBackAction}
           className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
         >
           Back
         </Button>
         <Button
+          type="button"
           onClick={handleSubmit}
           className="bg-primary hover:bg-primary/90"
-          disabled={Object.keys(selectedCategories).length === 0 || isSaving}
+          disabled={
+            !selectedIndustryCategories || 
+            Object.keys(selectedIndustryCategories).length === 0 || 
+            isSubmitting
+          }
         >
-          {isSaving ? "Saving..." : "Complete"}
+          {isSubmitting ? "Saving..." : "Complete"}
         </Button>
       </div>
     </div>

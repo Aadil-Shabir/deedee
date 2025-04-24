@@ -11,6 +11,7 @@ import { TeamMembersList } from "../team-forms/team-members-list";
 import { Plus, Users, Award, ChevronRight } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
+import { useCompanyContext } from "@/context/company-context";
 import {
   getTeamInfo,
   saveTeamInfo,
@@ -23,7 +24,11 @@ interface TeamMember extends TeamMemberData {
   id: string;
 }
 
-export function TeamInfo() {
+interface TeamInfoProps {
+  companyId?: string; // This will now be used as a fallback
+}
+
+export function TeamInfo({ companyId: propCompanyId }: TeamInfoProps = {}) {
   const [teamSize, setTeamSize] = useState("");
   const [coFounders, setCoFounders] = useState("no");
   const [diversity, setDiversity] = useState("mixed");
@@ -37,13 +42,30 @@ export function TeamInfo() {
   const { user, loading } = useUser();
   const { toast } = useToast();
 
+  // Get the activeCompanyId from the CompanyContext
+  const { activeCompanyId } = useCompanyContext();
+
+  // Use activeCompanyId from context if available, otherwise fall back to prop
+  const companyId = activeCompanyId;
+
+  // Log the company ID being used
+  useEffect(() => {
+    console.log("TeamInfo using companyId:", companyId);
+  }, [companyId]);
+
   // Load team info
   useEffect(() => {
     async function loadTeamData() {
       if (!user) return;
+      if (!companyId) {
+        console.warn("No company ID available to load team data");
+        setIsLoading(false);
+        return;
+      }
 
       try {
-        const result = await getTeamInfo(user.id);
+        console.log("Loading team data for company:", companyId);
+        const result = await getTeamInfo(user.id, companyId);
 
         if (result.success && result.data) {
           const data = result.data;
@@ -63,15 +85,21 @@ export function TeamInfo() {
     if (!loading) {
       loadTeamData();
     }
-  }, [user, loading]);
+  }, [user, loading, companyId]);
 
   // Load team members separately
   useEffect(() => {
     async function loadTeamMembers() {
       if (!user) return;
+      if (!companyId) {
+        console.warn("No company ID available to load team members");
+        setIsLoadingMembers(false);
+        return;
+      }
 
       try {
-        const result = await getTeamMembers(user.id);
+        console.log("Loading team members for company:", companyId);
+        const result = await getTeamMembers(user.id, companyId);
 
         if (result.success) {
           setTeamMembers(result.data);
@@ -86,15 +114,23 @@ export function TeamInfo() {
     if (!loading) {
       loadTeamMembers();
     }
-  }, [user, loading]);
+  }, [user, loading, companyId]);
 
   // Handle adding a team member
   const handleTeamMemberAdd = async (data: TeamMemberData) => {
     if (!user) return;
+    if (!companyId) {
+      toast({
+        title: "Error",
+        description: "No company selected. Please select a company first.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // Call the server action to add the team member
-      const result = await addTeamMember(user.id, data);
+      const result = await addTeamMember(user.id, data, companyId);
 
       if (result.success && result.data) {
         // Add the new member to the local state
@@ -133,9 +169,17 @@ export function TeamInfo() {
   // Handle removing a team member
   const handleTeamMemberRemove = async (id: string) => {
     if (!user) return;
+    if (!companyId) {
+      toast({
+        title: "Error",
+        description: "No company selected",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
-      const result = await deleteTeamMember(user.id, id);
+      const result = await deleteTeamMember(user.id, id, companyId);
 
       if (result.success) {
         setTeamMembers(teamMembers.filter((member) => member.id !== id));
@@ -181,15 +225,28 @@ export function TeamInfo() {
       return;
     }
 
+    if (!companyId) {
+      toast({
+        title: "Error",
+        description: "No company selected. Please select a company first.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSaving(true);
 
     try {
-      const result = await saveTeamInfo(user.id, {
-        teamSize: parseInt(teamSize) || 0,
-        hasCoFounders: coFounders as "no" | "two" | "more",
-        foundersDiversity: diversity as "women" | "men" | "mixed",
-        achievements,
-      });
+      const result = await saveTeamInfo(
+        user.id,
+        {
+          teamSize: parseInt(teamSize) || 0,
+          hasCoFounders: coFounders as "no" | "two" | "more",
+          foundersDiversity: diversity as "women" | "men" | "mixed",
+          achievements,
+        },
+        companyId
+      );
 
       if (result.success) {
         toast({
@@ -216,6 +273,27 @@ export function TeamInfo() {
     }
   };
 
+  // Show company selection message if no company is selected
+  if (!companyId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
+        <div className="bg-primary/20 p-4 rounded-full">
+          <Users className="h-8 w-8 text-primary" />
+        </div>
+        <h2 className="text-2xl font-bold text-center text-zinc-200">No Company Selected</h2>
+        <p className="text-zinc-400 text-center max-w-md">
+          Please select a company from your company list to manage its team information.
+        </p>
+        <Button 
+          className="mt-4 bg-primary hover:bg-primary/90"
+          onClick={() => window.location.href = '/company/profile'}
+        >
+          Go to Company Selection
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl mx-auto">
       {isLoading ? (
@@ -224,7 +302,7 @@ export function TeamInfo() {
         </div>
       ) : (
         <>
-          {/* Team Page Header - no changes */}
+          {/* Team Page Header */}
           <div className="space-y-4">
             <div className="flex items-center gap-3">
               <div className="bg-primary/20 p-2 rounded-lg">
@@ -272,7 +350,6 @@ export function TeamInfo() {
                 Do you have co-founders? <span className="text-primary">*</span>
               </Label>
               <RadioGroup value={coFounders} onValueChange={setCoFounders}>
-                {/* Existing radio buttons - no changes */}
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="no" id="no" />
@@ -296,12 +373,12 @@ export function TeamInfo() {
               </RadioGroup>
             </div>
 
-            {/* Team Members Section - updated with our new component */}
+            {/* Team Members Section */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-zinc-200">Leadership Team</Label>
                 <Button
-                  type="button" // Make sure it doesn't submit the form
+                  type="button"
                   onClick={() => setDialogOpen(true)}
                   className="bg-primary hover:bg-primary/90"
                 >
@@ -327,7 +404,6 @@ export function TeamInfo() {
                 Founders Diversity <span className="text-primary">*</span>
               </Label>
               <RadioGroup value={diversity} onValueChange={setDiversity}>
-                {/* Existing radio buttons - no changes */}
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="women" id="women" />

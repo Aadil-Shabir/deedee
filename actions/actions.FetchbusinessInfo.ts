@@ -22,27 +22,78 @@ interface BusinessDetailsData {
 }
 
 /**
- * Fetches basic business information for a logged-in user
+ * Fetches basic business information for a specific company
  * 
  * @param userId - The ID of the currently logged-in user
+ * @param companyId - Optional specific company ID to fetch. If not provided, gets active company.
  * @returns Object containing business data or error information
  */
-export async function fetchBusinessInfo(userId: string) {
-  console.log("FetchBusinessInfo called with userId:", userId);
+export async function fetchBusinessInfo(userId: string, companyId?: string) {
+  console.log("FetchBusinessInfo called with userId:", userId, "companyId:", companyId);
   const supabase = await createClient();
   
   try {
-    // Log the action
-    console.log("Fetching companies for user:", userId);
+    let targetCompanyId = companyId;
     
-    // Get all companies for this user
+    // If no company ID is specified, get the active company from user profile
+    if (!targetCompanyId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('active_company_id')
+        .eq('id', userId)
+        .single();
+        
+      if (profile?.active_company_id) {
+        targetCompanyId = profile.active_company_id;
+      }
+    }
+    
+    // If we have a target company ID, fetch that specific company
+    if (targetCompanyId) {
+      const { data: company, error } = await supabase
+        .from('companies')
+        .select('*')
+        .eq('id', targetCompanyId)
+        .eq('owner_id', userId) // Security check: ensure company belongs to user
+        .single();
+        
+      if (error) {
+        console.error('Error fetching company:', error);
+        return { success: false, message: 'Failed to load company information' };
+      }
+      
+      if (!company) {
+        return { 
+          success: false, 
+          data: null,
+          message: 'Company not found or access denied' 
+        };
+      }
+      
+      // Format the data for the client
+      const businessData: BusinessData = {
+        id: company.id,
+        companyName: company.company_name || '',
+        webUrl: company.web_url || '',
+        shortDescription: company.short_description || '',
+        productsCount: company.products_count !== null ? company.products_count.toString() : '',
+        fullDescription: company.full_description || '',
+        logoUrl: company.logo_url || null
+      };
+      
+      return { 
+        success: true, 
+        data: businessData,
+        message: 'Business information loaded successfully'
+      };
+    }
+    
+    // If no target company ID and no active company in profile, get all companies
     const { data: companies, error: companiesError } = await supabase
       .from('companies')
       .select('*')
       .eq('owner_id', userId);
       
-    console.log("Query result:", { companies, error: companiesError });
-    
     if (companiesError) {
       console.error('Error fetching companies:', companiesError);
       return { success: false, message: 'Failed to load company information' };
@@ -60,10 +111,11 @@ export async function fetchBusinessInfo(userId: string) {
     // Use the first company found
     const company = companies[0];
     
-    // Log if multiple companies exist
-    if (companies.length > 1) {
-      console.warn(`User ${userId} has multiple companies. Using first one: ${company.id}`);
-    }
+    // Set this as the active company in profile
+    await supabase
+      .from('profiles')
+      .update({ active_company_id: company.id })
+      .eq('id', userId);
     
     // Format the data for the client
     const businessData: BusinessData = {
@@ -76,12 +128,10 @@ export async function fetchBusinessInfo(userId: string) {
       logoUrl: company.logo_url || null
     };
     
-    // Return with additional debugging info
     return { 
       success: true, 
       data: businessData,
-      message: 'Business information loaded successfully',
-      debug: { companyCount: companies.length, companyId: company.id }
+      message: 'Business information loaded successfully'
     };
     
   } catch (error) {
@@ -91,40 +141,60 @@ export async function fetchBusinessInfo(userId: string) {
 }
 
 /**
- * Fetches business details for a logged-in user
+ * Fetches business details for a specific company
+ * 
+ * @param userId - The ID of the currently logged-in user
+ * @param companyId - Optional specific company ID to fetch. If not provided, gets active company.
  */
-export async function fetchBusinessDetails(userId: string) {
-  console.log("fetchBusinessDetails called with userId:", userId);
+export async function fetchBusinessDetails(userId: string, companyId?: string) {
+  console.log("fetchBusinessDetails called with userId:", userId, "companyId:", companyId);
   const supabase = await createClient();
   
   try {
-    // Get company ID for this user
-    const { data: companies, error: companyError } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("owner_id", userId);
-      
-    if (companyError) {
-      console.error('Error fetching companies:', companyError);
-      return { success: false, message: 'Failed to load company information' };
+    let targetCompanyId = companyId;
+    
+    // If no company ID is specified, get the active company from user profile
+    if (!targetCompanyId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('active_company_id')
+        .eq('id', userId)
+        .single();
+        
+      if (profile?.active_company_id) {
+        targetCompanyId = profile.active_company_id;
+      } else {
+        // Get first company as fallback
+        const { data: companies } = await supabase
+          .from("companies")
+          .select("id")
+          .eq("owner_id", userId);
+          
+        if (companies && companies.length > 0) {
+          targetCompanyId = companies[0].id;
+          
+          // Update active company in profile
+          await supabase
+            .from('profiles')
+            .update({ active_company_id: targetCompanyId })
+            .eq('id', userId);
+        }
+      }
     }
     
-    if (!companies || companies.length === 0) {
+    if (!targetCompanyId) {
       return { 
-        success: true, 
+        success: false, 
         data: null,
         message: 'No company found for this user' 
       };
     }
     
-    // Use the first company
-    const companyId = companies[0].id;
-    
-    // Get business details
+    // Get business details for the target company
     const { data, error } = await supabase
       .from("business_details")
       .select("*")
-      .eq("company_id", companyId)
+      .eq("company_id", targetCompanyId)
       .maybeSingle();
       
     if (error) {
@@ -139,8 +209,6 @@ export async function fetchBusinessDetails(userId: string) {
         message: 'No business details found' 
       };
     }
-    
-    console.log("Found business details:", data);
     
     return {
       success: true,

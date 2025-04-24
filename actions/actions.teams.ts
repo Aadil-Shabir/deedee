@@ -21,34 +21,64 @@ interface TeamMemberData {
 }
 
 /**
+ * Helper function to get the company ID
+ */
+async function getCompanyId(supabase: any, userId: string, specificCompanyId?: string) {
+  // If a specific company ID is provided, verify it belongs to the user
+  if (specificCompanyId) {
+    const { data, error } = await supabase
+      .from("companies")
+      .select("id")
+      .eq("id", specificCompanyId)
+      .eq("owner_id", userId)
+      .single();
+      
+    if (error || !data) {
+      throw new Error("Company not found or not owned by user");
+    }
+    
+    return specificCompanyId;
+  }
+  
+  // Otherwise get the active company ID from user profile
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("active_company_id")
+    .eq("id", userId)
+    .single();
+    
+  if (profile?.active_company_id) {
+    return profile.active_company_id;
+  }
+  
+  // Fallback to first company
+  const { data: companies, error } = await supabase
+    .from("companies")
+    .select("id")
+    .eq("owner_id", userId);
+    
+  if (error || !companies || companies.length === 0) {
+    throw new Error("No companies found for user");
+  }
+  
+  return companies[0].id;
+}
+
+/**
  * Save basic team information (without team members)
  */
-export async function saveTeamInfo(userId: string, teamInfo: TeamInfoData) {
+export async function saveTeamInfo(userId: string, teamInfo: TeamInfoData, companyId?: string) {
   const supabase = await createClient();
   
   try {
-    // Get company ID for the user
-    const { data: companies, error: companiesError } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("owner_id", userId);
-
-    if (companiesError) {
-      console.error("Error fetching companies:", companiesError);
-      return { success: false, message: "Failed to find company for this user" };
-    }
-
-    if (!companies || companies.length === 0) {
-      return { success: false, message: "No company found" };
-    }
-
-    const companyId = companies[0].id;
+    // Get target company ID
+    const targetCompanyId = await getCompanyId(supabase, userId, companyId);
     
     // Check if team info already exists
     const { data: existingInfo, error: existingError } = await supabase
       .from("team_info")
       .select("id")
-      .eq("company_id", companyId)
+      .eq("company_id", targetCompanyId)
       .maybeSingle();
       
     if (existingError) {
@@ -59,7 +89,7 @@ export async function saveTeamInfo(userId: string, teamInfo: TeamInfoData) {
     const { error: saveError } = await supabase
       .from("team_info")
       .upsert({
-        company_id: companyId,
+        company_id: targetCompanyId,
         team_size: teamInfo.teamSize,
         has_co_founders: teamInfo.hasCoFounders,
         founders_diversity: teamInfo.foundersDiversity,
@@ -86,27 +116,18 @@ export async function saveTeamInfo(userId: string, teamInfo: TeamInfoData) {
 /**
  * Fetch basic team information
  */
-export async function getTeamInfo(userId: string) {
+export async function getTeamInfo(userId: string, companyId?: string) {
   const supabase = await createClient();
   
   try {
-    // Get company ID for the user
-    const { data: companies, error: companiesError } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("owner_id", userId);
-
-    if (companiesError || !companies || companies.length === 0) {
-      return { success: false, data: null, message: "Company not found" };
-    }
-
-    const companyId = companies[0].id;
+    // Get target company ID
+    const targetCompanyId = await getCompanyId(supabase, userId, companyId);
     
     // Get team info
     const { data: teamInfo, error: teamInfoError } = await supabase
       .from("team_info")
       .select("*")
-      .eq("company_id", companyId)
+      .eq("company_id", targetCompanyId)
       .maybeSingle();
       
     if (teamInfoError) {
@@ -151,21 +172,12 @@ export async function getTeamInfo(userId: string) {
 /**
  * Add a team member
  */
-export async function addTeamMember(userId: string, member: TeamMemberData) {
+export async function addTeamMember(userId: string, member: TeamMemberData, companyId?: string) {
   const supabase = await createClient();
   
   try {
-    // Get company ID for the user
-    const { data: companies, error: companiesError } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("owner_id", userId);
-
-    if (companiesError || !companies || companies.length === 0) {
-      return { success: false, message: "Company not found" };
-    }
-
-    const companyId = companies[0].id;
+    // Get target company ID
+    const targetCompanyId = await getCompanyId(supabase, userId, companyId);
     
     // Get or create team_info record
     let teamInfoId;
@@ -173,7 +185,7 @@ export async function addTeamMember(userId: string, member: TeamMemberData) {
     const { data: existingTeamInfo, error: infoError } = await supabase
       .from("team_info")
       .select("id")
-      .eq("company_id", companyId)
+      .eq("company_id", targetCompanyId)
       .maybeSingle();
       
     if (infoError) {
@@ -188,7 +200,7 @@ export async function addTeamMember(userId: string, member: TeamMemberData) {
       const { data: newTeamInfo, error: createError } = await supabase
         .from("team_info")
         .insert({
-          company_id: companyId,
+          company_id: targetCompanyId,
           team_size: 1,
           has_co_founders: "no",
           founders_diversity: "mixed"
@@ -237,29 +249,20 @@ export async function addTeamMember(userId: string, member: TeamMemberData) {
 }
 
 /**
- * Get all team members for a user's company
+ * Get all team members for a specific company
  */
-export async function getTeamMembers(userId: string) {
+export async function getTeamMembers(userId: string, companyId?: string) {
   const supabase = await createClient();
   
   try {
-    // Get company ID
-    const { data: companies, error: companiesError } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("owner_id", userId);
-
-    if (companiesError || !companies || companies.length === 0) {
-      return { success: false, data: [], message: "Company not found" };
-    }
-
-    const companyId = companies[0].id;
+    // Get target company ID
+    const targetCompanyId = await getCompanyId(supabase, userId, companyId);
     
     // Get team info ID
     const { data: teamInfo, error: infoError } = await supabase
       .from("team_info")
       .select("id")
-      .eq("company_id", companyId)
+      .eq("company_id", targetCompanyId)
       .maybeSingle();
       
     if (infoError) {
@@ -308,27 +311,18 @@ export async function getTeamMembers(userId: string) {
 /**
  * Delete a team member
  */
-export async function deleteTeamMember(userId: string, memberId: string) {
+export async function deleteTeamMember(userId: string, memberId: string, companyId?: string) {
   const supabase = await createClient();
   
   try {
-    // Get company ID
-    const { data: companies, error: companiesError } = await supabase
-      .from("companies")
-      .select("id")
-      .eq("owner_id", userId);
-
-    if (companiesError || !companies || companies.length === 0) {
-      return { success: false, message: "Company not found" };
-    }
-
-    const companyId = companies[0].id;
+    // Get target company ID
+    const targetCompanyId = await getCompanyId(supabase, userId, companyId);
     
     // Get team info ID
     const { data: teamInfo, error: infoError } = await supabase
       .from("team_info")
       .select("id")
-      .eq("company_id", companyId)
+      .eq("company_id", targetCompanyId)
       .maybeSingle();
       
     if (infoError || !teamInfo) {

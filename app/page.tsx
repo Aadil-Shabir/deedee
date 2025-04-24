@@ -40,7 +40,7 @@ export default function Home() {
             <TabsTrigger value="deployment">Deployment</TabsTrigger>
           </TabsList>
           <TabsContent value="design" className="mt-6">
-            <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <Palette className="h-8 w-8 mb-2 text-primary" />

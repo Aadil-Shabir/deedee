@@ -1,95 +1,44 @@
 'use client'
-import { useState, useEffect, useRef } from "react";
+
+import { useRef } from "react";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { useUser } from "@/hooks/use-user";
-import { useToast } from "@/components/ui/toast-provider";
-import { createClient } from "@/supabase/supabase";
-import { fetchBusinessInfo } from "@/actions/actions.FetchbusinessInfo";
-
-const supabase = createClient();
+import { useCompanyContext } from "@/context/company-context";
 
 interface BasicInfoProps {
-  onNext: () => void;
+  onNext?: () => void;
 }
 
-export function BasicInfo({ onNext }: BasicInfoProps) {
-  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
-  const [companyName, setCompanyName] = useState("");
-  const [webUrl, setWebUrl] = useState("");
-  const [shortDescription, setShortDescription] = useState("");
-  const [productsCount, setProductsCount] = useState("");
-  const [fullDescription, setFullDescription] = useState("");
-  const { user, loading } = useUser();
-  const { toast } = useToast();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    console.log("user effect for loading data is being called")
-    console.log("Current user:", user);
-    console.log("Current loading:", loading);
+export function BasicInfo({ onNext }: BasicInfoProps = {}) {
+  const { 
+    isLoading,
+    isSubmitting,
+    formMode,
+    
+    // Form data
+    companyName,
+    webUrl,
+    shortDescription,
+    productsCount,
+    fullDescription,
+    companyLogo,
+    
+    // Form setters
+    setCompanyName,
+    setWebUrl,
+    setShortDescription,
+    setProductsCount,
+    setFullDescription,
+    setCompanyLogo,
+    
+    // Actions
+    submitBasicInfo,
+    nextStep
+  } = useCompanyContext();
   
-    async function loadBusinessData() {
-      if (!user) {
-        console.log("No user, ending loading state");
-        setIsLoading(false);
-        return;
-      }
-      
-      console.log("Starting to load business data...");
-      setIsLoading(true);
-      
-      try {
-        console.log("Fetching business info for user:", user.id);
-        const result = await fetchBusinessInfo(user.id);
-        console.log("Business info result:", result);
-
-        if (result.success && result.data) {
-          console.log("Populating form with data:", result.data);
-          const data = result.data;
-
-          // Explicitly set each field with fallbacks
-          setCompanyName(data.companyName || "");
-          setWebUrl(data.webUrl || "");
-          setShortDescription(data.shortDescription || "");
-          setProductsCount(data.productsCount ? data.productsCount.toString() : "");
-          setFullDescription(data.fullDescription || "");
-          
-          if (data.logoUrl) {
-            console.log("Setting company logo:", data.logoUrl);
-            setCompanyLogo(data.logoUrl);
-          }
-        } else {
-          console.log("No business data found or error:", result.message);
-        }
-      } catch (error) {
-        console.error("Error in loadBusinessData:", error);
-      } finally {
-        console.log("Ending loading state");
-        setIsLoading(false);
-      }
-    }
-
-    if (user && !loading) {
-      loadBusinessData();
-    }
-  }, [user]);
-
-  // Safety timeout to prevent infinite loading
-  // useEffect(() => {
-  //   if (isLoading) {
-  //     const timer = setTimeout(() => {
-  //       console.log("Safety timeout: forcing loading state to end after 5 seconds");
-  //       setIsLoading(false);
-  //     }, 5000);
-      
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [isLoading]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -108,135 +57,28 @@ export function BasicInfo({ onNext }: BasicInfoProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!user) {
-      toast({
-        title: "Error",
-        description: "You must be logged in to save company information",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      // Upload logo if it exists
-      let logoUrl = companyLogo;
-
-      // Only upload if it's a new image (data URL) and not an existing URL
-      if (companyLogo && companyLogo.startsWith("data:")) {
-        // Convert the data URL to a file
-        const arr = companyLogo.split(",");
-        const mime = arr[0].match(/:(.*?);/)?.[1] || "image/jpeg";
-        const bstr = atob(arr[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
-        }
-
-        const file = new File([u8arr], `logo-${user.id}-${Date.now()}.jpeg`, {
-          type: mime,
-        });
-
-        // Upload to Supabase storage
-        const { data, error } = await supabase.storage
-          .from("company-logos")
-          .upload(`${user.id}/${file.name}`, file, {
-            contentType: mime,
-            cacheControl: "3600",
-            upsert: true,
-          });
-
-        if (error) {
-          console.error("Logo upload error:", error);
-          toast({
-            title: "Warning",
-            description:
-              "Failed to upload logo but continuing with form submission",
-            variant: "destructive",
-          });
-        } else {
-          // Get the public URL
-          const { data: urlData } = supabase.storage
-            .from("company-logos")
-            .getPublicUrl(data.path);
-
-          logoUrl = urlData.publicUrl;
-          console.log("Successfully uploaded logo:", logoUrl);
-        }
-      } else if (companyLogo && !companyLogo.includes("supabase")) {
-        // Skip non-Supabase URLs (like localhost URLs)
-        console.log(
-          "Skipping non-Supabase URL:",
-          companyLogo.substring(0, 30) + "..."
-        );
-        logoUrl = null;
+    
+    const success = await submitBasicInfo();
+    if (success) {
+      if (onNext) {
+        onNext();
+      } else {
+        nextStep();
       }
-
-      // Check if there are any existing companies for this user
-      const { data: existingCompanies } = await supabase
-        .from("companies")
-        .select("id")
-        .eq("owner_id", user.id);
-
-
-
-      const companyExists = existingCompanies && existingCompanies.length > 0;
-
-      // Save business details to database - handle multiple companies gracefully
-      const { error } = await supabase.from("companies").upsert({
-        owner_id: user.id,
-        company_name: companyName,
-        web_url: webUrl,
-        short_description: shortDescription,
-        products_count: parseInt(productsCount || "0"),
-        full_description: fullDescription,
-        logo_url: logoUrl,
-        // If a company already exists, use its ID to update rather than insert
-        ...(companyExists && { id: existingCompanies[0].id }),
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Company information saved successfully",
-        variant: "success",
-      });
-
-      // Continue to next step
-      onNext();
-    } catch (error) {
-      console.error("Error saving business details:", error);
-      toast({
-        title: "Error",
-        description: "Failed to save company information",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {isLoading ? (
+      {isLoading && formMode === 'edit' ? (
         <div className="flex justify-center items-center h-64 flex-col">
           <div className="text-zinc-400 mb-2">Loading company information...</div>
-          <div className="text-xs text-zinc-500">
-            (If loading takes too long, <button type="button" onClick={() => setIsLoading(false)} className="text-primary underline">click here</button>)
-          </div>
         </div>
       ) : (
         <>
           <div>
             <h2 className="text-2xl font-bold text-zinc-100 mb-6">
-              Basic Information
+              {formMode === 'create' ? "Create New Company" : "Update Company Information"}
             </h2>
 
             <div className="space-y-6">
