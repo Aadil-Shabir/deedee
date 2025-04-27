@@ -13,7 +13,12 @@ import {
   BookOpen,
   Settings,
   User,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  X,
+  BarChart3,
+  HelpCircle,
+  LogOut
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -24,9 +29,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { HelpCircle, LogOut } from "lucide-react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 
 const sidebarLinks = [
   {
@@ -65,13 +72,18 @@ const sidebarLinks = [
     icon: BookOpen
   },
   {
+    name: "Score Card",
+    href: "/company/score-card",
+    icon: BarChart3
+  },
+  {
     name: "Settings",
     href: "/company/settings",
     icon: Settings
   }
 ];
 
-export function Sidebar() {
+function SidebarContent({ className, closeMobileMenu }: { className?: string; closeMobileMenu?: () => void }) {
   const pathname = usePathname();
   const { user } = useUser();
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -125,7 +137,7 @@ export function Sidebar() {
             .from('profiles')
             .select('profile_picture_url')
             .eq('id', user.id)
-            .single();
+            .maybeSingle();
             
           if (data?.profile_picture_url) {
             setProfilePicture(data.profile_picture_url);
@@ -149,8 +161,15 @@ export function Sidebar() {
     return userName.charAt(0).toUpperCase();
   };
 
+  // Handle clicks in mobile mode
+  const handleNavLinkClick = () => {
+    if (closeMobileMenu) {
+      closeMobileMenu();
+    }
+  };
+
   return (
-    <div className="h-screen w-64 bg-[#121218] flex flex-col border-r border-zinc-800">
+    <div className={cn("h-full flex flex-col bg-[#121218]", className)}>
       <div className="px-4 py-3">
         <div className="relative h-10 w-full">
           <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
@@ -174,6 +193,7 @@ export function Sidebar() {
                   ? "bg-zinc-800/40 text-white"
                   : "text-zinc-400 hover:bg-zinc-800/30 hover:text-zinc-100"
               }`}
+              onClick={handleNavLinkClick}
             >
               <link.icon
                 className={`mr-3 h-5 w-5 ${
@@ -203,8 +223,8 @@ export function Sidebar() {
                   <span className="text-zinc-300 text-sm">{getUserInitials()}</span>
                 )}
               </div>
-              <span className="text-sm text-zinc-200">{userName}</span>
-              <ChevronDown className="h-4 w-4 text-zinc-400 ml-auto" />
+              <span className="text-sm text-zinc-200 truncate">{userName}</span>
+              <ChevronDown className="h-4 w-4 text-zinc-400 ml-auto flex-shrink-0" />
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56 bg-zinc-800 border-zinc-700 text-zinc-100">
@@ -240,4 +260,40 @@ export function Sidebar() {
       </div>
     </div>
   );
-} 
+}
+
+export function Sidebar() {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  return (
+    <>
+      {/* Mobile Hamburger */}
+      <div className="lg:hidden fixed top-4 left-4 z-50">
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger asChild>
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="bg-zinc-800/90 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600"
+            >
+              <Menu className="h-5 w-5 text-zinc-200" />
+              <span className="sr-only">Toggle menu</span>
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 border-r border-zinc-800 bg-[#121218] w-[280px]">
+            <SidebarContent closeMobileMenu={closeMobileMenu} />
+          </SheetContent>
+        </Sheet>
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:block h-screen w-64 border-r border-zinc-800 sticky top-0 left-0">
+        <SidebarContent />
+      </div>
+    </>
+  );
+}
