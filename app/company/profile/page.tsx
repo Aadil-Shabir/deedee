@@ -9,7 +9,10 @@ import { TeamInfo } from "@/app/components/ui/profile-forms/team-info";
 import { FundraisingInfo } from "@/app/components/ui/profile-forms/fundraising-info";
 import { TractionInfo } from "@/app/components/ui/profile-forms/traction-info";
 import { StackInfo } from "@/app/components/ui/profile-forms/stack-info";
-import { PromoteForm } from "@/app/components/ui/profile-forms/promote-form"; // Add this import
+import { PromoteForm } from "@/app/components/ui/profile-forms/promote-form";
+import { ReportForm } from "@/app/components/ui/profile-forms/report-form";
+import { CompanyReviews } from "@/app/components/ui/profile-forms/review-form";
+import { MatchForm } from "@/app/components/ui/profile-forms/match-form"; // Add this import
 
 // List of valid tabs for validation
 const validTabs = [
@@ -60,7 +63,7 @@ export default function ProfilePage() {
       
       <ProfileTabs activeTab={activeTab} onTabChange={handleTabChange} />
       
-      <div className="flex-1 py-8 px-6">
+      <div className="flex-1 py-4 md:py-8 px-3 md:px-6">
         {activeTab === "profile" ? (
           <ProfileInfo />
         ) : activeTab === "business" ? (
@@ -74,7 +77,13 @@ export default function ProfilePage() {
         ) : activeTab === "stack" ? (
           <StackInfo onTabChange={handleTabChange} />
         ) : activeTab === "promote" ? (
-          <PromoteForm /> // Use PromoteForm component here
+          <PromoteForm />
+        ) : activeTab === "reports" ? (
+          <ReportForm />
+        ) : activeTab === "reviews" ? (
+          <CompanyReviews />
+        ) : activeTab === "match" ? (
+          <MatchForm /> // Add MatchForm for the match tab
         ) : (
           <div className="max-w-4xl mx-auto flex items-center justify-center h-64">
             <p className="text-zinc-400 text-lg">This section is under development</p>
