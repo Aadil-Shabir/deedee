@@ -4,11 +4,12 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProfileTabs } from "@/app/components/ui/profile-tabs";
 import ProfileInfo from "@/app/components/ui/profile-forms/profile-info";
+import CompanyProfilePage from "@/app/components/ui/business-forms/business-profile";
 import { TeamInfo } from "@/app/components/ui/profile-forms/team-info";
 import { FundraisingInfo } from "@/app/components/ui/profile-forms/fundraising-info";
 import { TractionInfo } from "@/app/components/ui/profile-forms/traction-info";
 import { StackInfo } from "@/app/components/ui/profile-forms/stack-info";
-import CompanyProfilePage from "@/app/components/ui/business-forms/business-profile";
+import { PromoteForm } from "@/app/components/ui/profile-forms/promote-form"; // Add this import
 
 // List of valid tabs for validation
 const validTabs = [
@@ -73,10 +74,7 @@ export default function ProfilePage() {
         ) : activeTab === "stack" ? (
           <StackInfo onTabChange={handleTabChange} />
         ) : activeTab === "promote" ? (
-          <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-white mb-6">Promote Your Company</h2>
-            {/* Promote section content */}
-          </div>
+          <PromoteForm /> // Use PromoteForm component here
         ) : (
           <div className="max-w-4xl mx-auto flex items-center justify-center h-64">
             <p className="text-zinc-400 text-lg">This section is under development</p>
