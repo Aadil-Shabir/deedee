@@ -24,11 +24,8 @@ interface TeamMember extends TeamMemberData {
   id: string;
 }
 
-interface TeamInfoProps {
-  companyId?: string; // This will now be used as a fallback
-}
 
-export function TeamInfo({ companyId: propCompanyId }: TeamInfoProps = {}) {
+export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
   const [teamSize, setTeamSize] = useState("");
   const [coFounders, setCoFounders] = useState("no");
   const [diversity, setDiversity] = useState("mixed");
@@ -260,6 +257,9 @@ export function TeamInfo({ companyId: propCompanyId }: TeamInfoProps = {}) {
           description: result.message || "Failed to save team information",
           variant: "destructive",
         });
+      }
+      if (onComplete) {
+        onComplete();
       }
     } catch (error) {
       console.error("Error saving team info:", error);

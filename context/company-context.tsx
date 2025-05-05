@@ -148,38 +148,102 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   // Industry form state
   const [selectedIndustryCategories, setSelectedIndustryCategories] = useState<Record<string, string[]>>({});
   
-  // Load all companies on init
+  // Update the loadCompanies function inside the useEffect
   useEffect(() => {
     async function loadCompanies() {
-      if (!user || loading) return;
+      if (!user || loading) {
+        console.log("Skipping company load: User not ready or still loading", { user, loading });
+        return;
+      }
       
       try {
         setIsLoading(true);
+        console.log("Loading companies for user:", user.id);
         const supabase = createClient();
         
-        // Get all companies for this user
+        // First, check if user is actually authenticated with Supabase
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+          console.error("Authentication verification failed:", authError);
+          toast({
+            title: "Authentication Error",
+            description: "Please try logging in again",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (!authData?.user) {
+          console.error("No authenticated user found in Supabase");
+          return;
+        }
+        
+        // Get all companies for this user with more detailed error logging
         const { data, error } = await supabase
           .from('companies')
-          .select('id, company_name, web_url, short_description, products_count, full_description, logo_url')
+          .select('*')
           .eq('owner_id', user.id);
           
-        if (error) throw error;
+        if (error) {
+          console.error('Error code:', error.code);
+          console.error('Error message:', error.message);
+          console.error('Error details:', error.details);
+          
+          // Handle specific error types
+          if (error.code === 'PGRST301') {
+            toast({
+              title: "Database Error",
+              description: "You don't have permission to access this data",
+              variant: "destructive",
+            });
+          } else if (error.code === '42P01') {
+            toast({
+              title: "Database Error",
+              description: "The companies table doesn't exist",
+              variant: "destructive",
+            });
+          } else {
+            toast({
+              title: "Error Loading Companies",
+              description: error.message || "Unknown error occurred",
+              variant: "destructive",
+            });
+          }
+          throw error;
+        }
         
+        console.log("Successfully loaded companies:", data?.length || 0);
         setAllUserCompanies(data || []);
         
         // If we have companies, set the first one as active by default
         if (data && data.length > 0) {
+          console.log("Setting active company:", data[0].id);
           setActiveCompanyId(data[0].id);
+        } else {
+          console.log("No companies found for this user");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error loading companies:', error);
+        console.error('Error details:', {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          details: error.details,
+          code: error.code
+        });
+        
+        toast({
+          title: "Error Loading Companies",
+          description: error.message || "Please check console for details",
+          variant: "destructive",
+        });
       } finally {
         setIsLoading(false);
       }
     }
     
     loadCompanies();
-  }, [user, loading]);
+  }, [user, loading, toast]);
   
   // Load company data when active company changes
   useEffect(() => {

@@ -25,9 +25,10 @@ interface TechStackFile {
 
 interface StackInfoProps {
   onTabChange?: (tabId: string) => void;
+  onComplete: ()=> void; 
 }
 
-export function StackInfo({ onTabChange }: StackInfoProps) {
+export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [files, setFiles] = useState<TechStackFile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -300,6 +301,10 @@ export function StackInfo({ onTabChange }: StackInfoProps) {
       description: "All changes have been saved",
       variant: "default",
     });
+
+    if (onComplete) {
+      onComplete();
+    }
 
     if (onTabChange) {
       onTabChange("promote");

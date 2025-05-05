@@ -1,18 +1,12 @@
-"use client";
+// import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/ca
+import Relationships from "@/app/components/ui/profile-forms/relationship-form";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
+// This is a Server Component by default since it doesn't have "use client" 
 export default function RelationshipsPage() {
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Investor Relationships</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Investor relationships and connections will be displayed here</p>
-        </CardContent>
-      </Card>
+          {/* Render the client-side Relationships component within server-rendered page */}
+          <Relationships />
     </div>
   );
-} 
+}

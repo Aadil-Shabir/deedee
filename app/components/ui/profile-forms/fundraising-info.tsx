@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function FundraisingInfo() {
+export function FundraisingInfo({onComplete}: {onComplete: ()=> void}) {
   const [activeTab, setActiveTab] = useState<"current" | "past">("current");
   const { activeCompanyId, allUserCompanies } = useCompanyContext();
   
@@ -74,9 +74,9 @@ export function FundraisingInfo() {
           <FundraisingTabs activeTab={activeTab} onTabChange={handleTabChange} />
 
           {activeTab === "current" ? (
-            <CurrentRound onNext={handleSwitchToPast} />
+            <CurrentRound onNext={handleSwitchToPast} onComplete={onComplete} />
           ) : (
-            <PastFundraising onBack={handleSwitchToCurrent} />
+            <PastFundraising onBack={handleSwitchToCurrent} onComplete={onComplete}/>
           )}
         </>
       )}

@@ -3,6 +3,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { CompanyContextProvider } from '@/context/company-context';
+import { ProfileProvider } from "@/context/profile-context";
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -20,10 +21,11 @@ export default function RootLayout({
     <html lang="en">
     <ToastProvider>
       <CompanyContextProvider>
-
-     <body className={`${inter.className} bg-black text-white`}>
-        {children}
-      </body>
+        <ProfileProvider>
+          <body className={`${inter.className} bg-black text-white`}>
+            {children}
+          </body>
+        </ProfileProvider>
       </CompanyContextProvider>
     </ToastProvider>
     </html>

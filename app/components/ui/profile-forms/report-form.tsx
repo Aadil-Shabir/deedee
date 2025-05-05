@@ -10,7 +10,7 @@ import {
 import { toast } from "sonner";
 import { useUser } from "@/hooks/use-user";
 
-export function ReportForm() {
+export function ReportForm({onComplete}: {onComplete: ()=> void}) {
   const [generating, setGenerating] = useState(false);
   const [countdown, setCountdown] = useState(5);
   const [report, setReport] = useState<string | null>(null);
@@ -21,7 +21,9 @@ export function ReportForm() {
       toast.error("You must be logged in to generate a report");
       return;
     }
-
+    if (onComplete) {
+        onComplete();
+      }
     setGenerating(true);
     setCountdown(5);
 

@@ -45,7 +45,7 @@ interface Investor {
   matchRate: number;
 }
 
-export function MatchForm() {
+export function MatchForm({onComplete}: {onComplete: ()=> void}) {
   const [loading, setLoading] = useState(false);
   const [matchComplete, setMatchComplete] = useState(false);
   const [stats, setStats] = useState<MatchStats>({
@@ -105,6 +105,9 @@ export function MatchForm() {
     setLoading(false);
     setMatchComplete(true);
     toast.success("Match analysis complete!");
+    if (onComplete) {
+        onComplete();
+      }
   };
 
   const handleInvestorSelect = (investorName: string) => {

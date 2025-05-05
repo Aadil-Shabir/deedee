@@ -5,7 +5,7 @@ import { PremiumServices } from "../promote/premium-services";
 import { useCompanyContext } from "@/context/company-context";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export function PromoteForm() {
+export function PromoteForm({onComplete}: {onComplete: ()=> void}) {
   const [isLoading, setIsLoading] = useState(true);
   const { allUserCompanies, activeCompanyId } = useCompanyContext();
 
@@ -19,7 +19,9 @@ export function PromoteForm() {
       setIsLoading(false);
       return;
     }
-    
+    if (onComplete) {
+        onComplete();
+      }
     // Fallback timeout to ensure we don't show loading forever
     const timer = setTimeout(() => {
       setIsLoading(false);

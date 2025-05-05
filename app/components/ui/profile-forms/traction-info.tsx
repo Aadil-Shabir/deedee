@@ -12,7 +12,7 @@ import { useUser } from "@/hooks/use-user";
 import { getTractionData, saveTractionDataAndComputeMetrics, TractionData } from "@/actions/actions.traction";
 import { useToast } from "@/hooks/use-toast";
 
-export function TractionInfo() {
+export function TractionInfo({onComplete}: {onComplete: ()=> void}) {
   // Form state
   const [achievements, setAchievements] = useState<string[]>(["", "", ""]);
   const [revenue, setRevenue] = useState<{ [key: string]: string }>({
@@ -170,6 +170,9 @@ export function TractionInfo() {
           description: response.message || "Failed to save traction information",
           variant: "destructive",
         });
+      }
+      if (onComplete) {
+        onComplete();
       }
     } catch (err) {
       console.error("Error saving traction data:", err);

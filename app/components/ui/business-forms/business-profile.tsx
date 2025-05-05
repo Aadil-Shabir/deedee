@@ -18,7 +18,7 @@ const STEPS = [
   { id: 3, label: "Industry" }
 ];
 
-export default function CompanyProfilePage() {
+export default function CompanyProfilePage({onComplete}: {onComplete: ()=> void}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   

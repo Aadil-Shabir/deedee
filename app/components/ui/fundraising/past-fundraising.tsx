@@ -21,9 +21,10 @@ import { useToast } from "@/components/ui/toast-provider";
 
 interface PastFundraisingProps {
   onBack?: () => void;
+  onComplete?: () => void;
 }
 
-export function PastFundraising({ onBack }: PastFundraisingProps = {}) {
+export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {}) {
   // Form state
   const [previousRaised, setPreviousRaised] = useState("");
   const [paidPercentage, setPaidPercentage] = useState(0);
@@ -244,6 +245,9 @@ export function PastFundraising({ onBack }: PastFundraisingProps = {}) {
           description: response.message || "Failed to save information",
           variant: "destructive",
         });
+      }
+      if (onComplete) {
+        onComplete();
       }
     } catch (err) {
       console.error("Error saving past fundraising data:", err);

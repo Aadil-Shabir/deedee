@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 
 const supabase = createClient();
 
-const ProfileInfo = () => {
+const ProfileInfo = ({onComplete}: {onComplete: ()=> void}) => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -199,6 +199,12 @@ const ProfileInfo = () => {
           variant: "destructive"
         });
       }
+      if (onComplete) {
+        onComplete();
+      }
+
+
+
     } catch (error) {
       console.error("Error saving profile:", error);
       toast({

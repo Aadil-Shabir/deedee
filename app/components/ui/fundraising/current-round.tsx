@@ -34,9 +34,10 @@ const closingTimeOptions = [
 
 interface CurrentRoundProps {
   onNext?: () => void;
+  onComplete: ()=> void; 
 }
 
-export function CurrentRound({ onNext }: CurrentRoundProps = {}) {
+export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
   // Form state
   const [capitalReason, setCapitalReason] = useState("growth");
   const [raisingAmount, setRaisingAmount] = useState("");
@@ -179,6 +180,9 @@ export function CurrentRound({ onNext }: CurrentRoundProps = {}) {
       });
       return;
     }
+    if(onComplete){
+      onComplete();
+    }
 
     if (!activeCompanyId) {
       toast({
@@ -228,6 +232,9 @@ export function CurrentRound({ onNext }: CurrentRoundProps = {}) {
           description: response.message || "Failed to save fundraising information",
           variant: "destructive",
         });
+      }
+      if (onComplete) {
+        onComplete();
       }
     } catch (err) {
       console.error("Error saving fundraising data:", err);
