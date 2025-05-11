@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { PortfolioTabs } from "@/app/components/ui/portfolio/portfolio-tabs";
-import { PortfolioSearch } from "@/app/components/ui/portfolio/portfolio-search";
-import { PortfolioCard } from "@/app/components/ui/portfolio/portfolio-card";
-import { AddPortfolioModal } from "@/app/components/ui/portfolio/add-portfolio-modal";
-import { SellPositionModal } from "@/app/components/ui/portfolio/sell-position-modal";
-import { Company, PortfolioTab, SellPositionData, AddCompanyData } from "@/app/components/ui/portfolio/types";
+import { Suspense } from "react";
+import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useMemo } from "react";
 import { List } from "lucide-react";
+import { AddCompanyData, Company, PortfolioTab, SellPositionData } from "@/app/components/ui/company/portfolio/types";
+import { PortfolioTabs } from "@/app/components/ui/company/portfolio/portfolio-tabs";
+import { PortfolioSearch } from "@/app/components/ui/company/portfolio/portfolio-search";
+import { AddPortfolioModal } from "@/app/components/ui/company/portfolio/add-portfolio-modal";
+import { SellPositionModal } from "@/app/components/ui/company/portfolio/sell-position-modal";
+import { PortfolioCard } from "@/app/components/ui/company/portfolio/portfolio-card";
 
-export default function PortfolioPage() {
-  const [activeTab, setActiveTab] = useState<PortfolioTab>('active');
+function PortfolioContent() {
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<PortfolioTab>("active");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("company-name");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -55,6 +58,14 @@ export default function PortfolioPage() {
     { id: 'exits', label: 'Exits', count: 0 },
     { id: 'returns', label: 'Returns' }
   ];
+
+  // Use effect to handle URL params
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['active', 'exits', 'returns'].includes(tabParam)) {
+      setActiveTab(tabParam as PortfolioTab);
+    }
+  }, [searchParams]);
 
   // Handle tab change
   const handleTabChange = (tabId: string) => {
@@ -207,7 +218,7 @@ export default function PortfolioPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
             {filteredAndSortedCompanies.map(company => (
-              <PortfolioCard
+              <PortfolioCard 
                 key={company.id}
                 company={company}
                 onViewDetails={handleViewDetails}
@@ -235,4 +246,14 @@ export default function PortfolioPage() {
       />
     </div>
   );
-} 
+}
+
+export default function PortfolioPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0d1424] flex items-center justify-center">
+      <div className="animate-spin w-8 h-8 border-t-2 border-violet-500 rounded-full"></div>
+    </div>}>
+      <PortfolioContent />
+    </Suspense>
+  );
+}

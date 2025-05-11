@@ -4,13 +4,17 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { TrendingUp, BarChart, Building } from "lucide-react";
-import { FormField, RecurringRevenueToggle } from "../traction/form-field";
-import { AchievementInput } from "../traction/achievement-input";
-import { RevenueInput, ClientsInput, MetricInput, PercentMetricInput } from "../traction/revenue-input";
+// import { FormField, RecurringRevenueToggle } from "../traction/form-field";
+// import { AchievementInput } from "../traction/achievement-input";
+// import { RevenueInput, ClientsInput, MetricInput, PercentMetricInput } from "../traction/revenue-input";
 import { useCompanyContext } from "@/context/company-context";
 import { useUser } from "@/hooks/use-user";
 import { getTractionData, saveTractionDataAndComputeMetrics, TractionData } from "@/actions/actions.traction";
 import { useToast } from "@/hooks/use-toast";
+import { FormField } from "../company/fundraising/form-field";
+import { AchievementInput } from "../company/traction/achievement-input";
+import { ClientsInput, MetricInput, PercentMetricInput, RevenueInput } from "../company/traction/revenue-input";
+import { RecurringRevenueToggle } from "../company/traction/form-field";
 
 export function TractionInfo({onComplete}: {onComplete: ()=> void}) {
   // Form state

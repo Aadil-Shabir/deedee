@@ -4,13 +4,16 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Layers, BarChart, Building } from "lucide-react";
-import { VideoLinkInput } from "../stack/video-link-input";
-import { FileUpload } from "../stack/file-upload";
-import { MediaUpload } from "../stack/media-upload";
+// import { VideoLinkInput } from "../stack/video-link-input";
+// import { FileUpload } from "../stack/file-upload";
+// import { MediaUpload } from "../stack/media-upload";
 import { useCompanyContext } from "@/context/company-context";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
 import { deleteTechStackFile, getTechStackData, saveVideoUrl, uploadTechStackFile } from "@/actions/actions.stack";
+import { FileUpload } from "../company/stack/file-upload";
+import { MediaUpload } from "../company/stack/media-upload";
+import { VideoLinkInput } from "../company/stack/video-link-input";
 
 interface TechStackFile {
   id: string;

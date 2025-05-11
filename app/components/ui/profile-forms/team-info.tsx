@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { AddTeamMemberDialog } from "../team-forms/add-team-member-dialog";
-import { TeamMemberData } from "../team-forms/team-member-form";
-import { TeamMembersList } from "../team-forms/team-members-list";
+// import { AddTeamMemberDialog } from "../team-forms/add-team-member-dialog";
+// import { TeamMemberData } from "../team-forms/team-member-form";
+// import { TeamMembersList } from "../team-forms/team-members-list";
 import { Plus, Users, Award, ChevronRight } from "lucide-react";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
@@ -19,6 +19,9 @@ import {
   addTeamMember,
   deleteTeamMember,
 } from "@/actions/actions.teams";
+import { TeamMemberData } from "../company/team-forms/team-member-form";
+import { TeamMembersList } from "../company/team-forms/team-members-list";
+import { AddTeamMemberDialog } from "../company/team-forms/add-team-member-dialog";
 
 interface TeamMember extends TeamMemberData {
   id: string;

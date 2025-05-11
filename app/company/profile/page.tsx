@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ProfileTabs } from "@/app/components/ui/profile-tabs";
 import ProfileInfo from "@/app/components/ui/profile-forms/profile-info";
-import CompanyProfilePage from "@/app/components/ui/business-forms/business-profile";
+// import CompanyProfilePage from "@/app/components/ui/business-forms/business-profile";
 import { TeamInfo } from "@/app/components/ui/profile-forms/team-info";
 import { FundraisingInfo } from "@/app/components/ui/profile-forms/fundraising-info";
 import { TractionInfo } from "@/app/components/ui/profile-forms/traction-info";
@@ -18,6 +18,7 @@ import { ProfileProgress } from "@/app/components/layout/profile-progress";
 import { createClient } from "@/supabase/supabase";
 import { useUser } from "@/hooks/use-user";
 import { useCompanyContext } from "@/context/company-context";
+import CompanyProfilePage from "@/app/components/ui/company/business-forms/business-profile";
 
 // List of valid tabs for validation
 const validTabs = [

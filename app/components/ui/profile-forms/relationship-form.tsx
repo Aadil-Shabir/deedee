@@ -4,13 +4,20 @@ import { TabsContent } from "@/components/ui/tabs";
 import { PageVisit } from "@/types/visits";
 import { useUser } from "@/hooks/use-user";
 import { useRouter } from "next/navigation";
-import { useVisitDetails } from "../relationships/hooks/useVisitDetails";
-import { useInvestorsData } from "../relationships/hooks/useInvestorsData";
-import { RelationshipsTabs } from "../relationships/RelationshipsTabs";
-import { PitchTrackerTab } from "../relationships/PitchTrackerTab";
-import { ContactsTab } from "../relationships/ContactsTab";
-import { ProfileVisitsTab } from "../relationships/ProfileVisitsTab";
-import { RelationshipsDialogs } from "../relationships/RelationshipsDialogs";
+import { useVisitDetails } from "../company/relationships/hooks/useVisitDetails";
+import { useInvestorsData } from "../company/relationships/hooks/useInvestorsData";
+import { RelationshipsTabs } from "../company/relationships/RelationshipsTabs";
+import { PitchTrackerTab } from "../company/relationships/PitchTrackerTab";
+import { ContactsTab } from "../company/relationships/ContactsTab";
+import { ProfileVisitsTab } from "../company/relationships/ProfileVisitsTab";
+import { RelationshipsDialogs } from "../company/relationships/RelationshipsDialogs";
+// import { useVisitDetails } from "../relationships/hooks/useVisitDetails";
+// import { useInvestorsData } from "../relationships/hooks/useInvestorsData";
+// import { RelationshipsTabs } from "../relationships/RelationshipsTabs";
+// import { PitchTrackerTab } from "../relationships/PitchTrackerTab";
+// import { ContactsTab } from "../relationships/ContactsTab";
+// import { ProfileVisitsTab } from "../relationships/ProfileVisitsTab";
+// import { RelationshipsDialogs } from "../relationships/RelationshipsDialogs";
 
 const stages = [
   { id: "interested", label: "Interested", count: 1 },
@@ -108,7 +115,7 @@ export default function Relationships() {
                 setAddInvestorOpen(true);
               }}
               onImport={() => setImportDialogOpen(true)}
-              onEditContact={(contact) => {
+              onEditContact={(contact:any) => {
                 handleEditContact(contact);
                 setAddInvestorOpen(true);
               }}
@@ -142,7 +149,7 @@ export default function Relationships() {
         setDetailsOpen={setDetailsOpen}
         selectedInvestor={selectedInvestor}
         selectedContact={selectedContact}
-        onAddInvestor={(investor) => {
+        onAddInvestor={(investor:any) => {
           if (investor) {
             handleAddInvestor(investor);
           }

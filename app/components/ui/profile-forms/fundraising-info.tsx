@@ -2,12 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useCompanyContext } from "@/context/company-context";
-import { FundraisingTabs } from "../fundraising/fundraising-tabs";
-import { CurrentRound } from "../fundraising/current-round";
-import { PastFundraising } from "../fundraising/past-fundraising";
+// import { FundraisingTabs } from "../fundraising/fundraising-tabs";
+// import { CurrentRound } from "../fundraising/current-round";
+// import { PastFundraising } from "../fundraising/past-fundraising";
 import { Progress } from "@/components/ui/progress";
 import { Building } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { FundraisingTabs } from "../company/fundraising/fundraising-tabs";
+import { CurrentRound } from "../company/fundraising/current-round";
+import { PastFundraising } from "../company/fundraising/past-fundraising";
 
 export function FundraisingInfo({onComplete}: {onComplete: ()=> void}) {
   const [activeTab, setActiveTab] = useState<"current" | "past">("current");

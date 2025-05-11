@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { CompanySwitcher } from "../company-switcher";
+// import { CompanySwitcher } from "../company-switcher";
 import { BasicInfo } from "./basic-info";
 import { BusinessDetails } from "./business-details";
 import { IndustryInfo } from "./industry-info";
@@ -10,6 +10,7 @@ import { StepIndicator } from "@/app/components/ui/step-indicator";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft } from "lucide-react";
 import { useCompanyContext } from "@/context/company-context";
+import { CompanySwitcher } from "../../company-switcher";
 
 // Define step structure for better type safety
 const STEPS = [

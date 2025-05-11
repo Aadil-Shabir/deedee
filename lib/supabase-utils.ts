@@ -77,6 +77,8 @@ export const uploadProfilePicture = async (
       return null;
     }
 
+    
+
     // Get the public URL for the uploaded file
     const { data: publicUrlData } = supabase.storage
       .from('profile-pictures')

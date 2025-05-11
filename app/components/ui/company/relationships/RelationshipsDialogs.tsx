@@ -7,9 +7,12 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle } 
 import { Button } from "@/components/ui/button";
 import { InvestorDetails } from "@/types/investors";
 import { Contact } from "@/types/contacts";
-import { AddInvestorDialog } from "../add-investor-dialog";
-import { VisitDetailsDialog } from "../visit-details-dialog";
-import { InvestorDetailsDialog } from "../investor-details-dialog";
+import { AddInvestorDialog } from "../../add-investor-dialog";
+import { VisitDetailsDialog } from "../../visit-details-dialog";
+import { InvestorDetailsDialog } from "../../investor-details-dialog";
+// import { AddInvestorDialog } from "../add-investor-dialog";
+// import { VisitDetailsDialog } from "../visit-details-dialog";
+// import { InvestorDetailsDialog } from "../investor-details-dialog";
 
 interface RelationshipsDialogsProps {
   addInvestorOpen: boolean;

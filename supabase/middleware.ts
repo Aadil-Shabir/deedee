@@ -37,9 +37,9 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
  
-  // print url
-  console.log("url", request.nextUrl.pathname)
-  console.log("user", user)
+  // // print url
+  // console.log("url", request.nextUrl.pathname)
+  // console.log("user", user)
   // if user logs in using linked_oidc auth instead of auth/callback do it 
   if (
     !user
@@ -50,7 +50,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  console.log("user", user)
+  // console.log("user", user)
 
   // fetch role from user_role table
   const role = user.user_metadata.role;

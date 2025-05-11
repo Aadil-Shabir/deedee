@@ -1,18 +1,24 @@
 "use client";
 
-import { ActionButton } from "../../components/ui/dealflow/action-button";
-import { AISearchBar } from "../../components/ui/dealflow/ai-search-bar";
-import { CompanyDetailsModal } from "../../components/ui/dealflow/company-details-modal";
-import { 
-  DealflowFilters, 
-  AISearchQuery, 
-  Company as DealflowCompany,
-  MatchCategoryType
-} from "../../components/ui/dealflow/types";
-import { SearchResultsFilters } from "../../components/ui/dealflow/search-results-filters";
-import { ViewMode, ViewToggle } from "../../components/ui/dealflow/view-toggle";
+import { ActionButton } from "@/app/components/ui/company/dealflow/action-button";
+import { AISearchBar } from "@/app/components/ui/company/dealflow/ai-search-bar";
+import { CompanyDetailsModal } from "@/app/components/ui/company/dealflow/company-details-modal";
+import { SearchResultsFilters } from "@/app/components/ui/company/dealflow/search-results-filters";
+import { AISearchQuery, DealflowFilters, MatchCategoryType } from "@/app/components/ui/company/dealflow/types";
+import { ViewMode, ViewToggle } from "@/app/components/ui/company/dealflow/view-toggle";
+// import { ActionButton } from "../../components/ui/dealflow/action-button";
+// import { AISearchBar } from "../../components/ui/dealflow/ai-search-bar";
+// import { CompanyDetailsModal } from "../../components/ui/dealflow/company-details-modal";
+// import { 
+//   DealflowFilters, 
+//   AISearchQuery, 
+//   Company as DealflowCompany,
+//   MatchCategoryType
+// } from "../../components/ui/dealflow/types";
+// import { SearchResultsFilters } from "../../components/ui/dealflow/search-results-filters";
+// import { ViewMode, ViewToggle } from "../../components/ui/dealflow/view-toggle";
 import { useState } from "react";
-import MatchCategory from "../../components/ui/dealflow/match-category";
+// import MatchCategory from "../../components/ui/dealflow/match-category";
 
 // Define a custom company interface for the dealflow page
 interface DealflowPageCompany {

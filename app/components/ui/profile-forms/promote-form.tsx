@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { ProfileLink } from "../promote/profile-link";
-import { PricingTiers } from "../promote/pricing-tiers";
-import { PremiumServices } from "../promote/premium-services";
+// import { ProfileLink } from "../promote/profile-link";
+// import { PricingTiers } from "../promote/pricing-tiers";
+// import { PremiumServices } from "../promote/premium-services";
 import { useCompanyContext } from "@/context/company-context";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileLink } from "../company/promote/profile-link";
+import { PricingTiers } from "../company/promote/pricing-tiers";
+import { PremiumServices } from "../company/promote/premium-services";
 
 export function PromoteForm({onComplete}: {onComplete: ()=> void}) {
   const [isLoading, setIsLoading] = useState(true);

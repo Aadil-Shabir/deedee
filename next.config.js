@@ -1,13 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
+  reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: {
-    unoptimized: true,
     domains: [
-      // Your domains for images here
       'localhost',
       'yoursupabaseproject.supabase.co',
       // Add any other needed domains
@@ -21,15 +19,21 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      // Increase to 10MB or adjust as needed
       bodySizeLimit: '10mb',
     },
   },
-  async rewrites() {
+  async redirects() {
     return [
       {
         source: '/auth/callback',
-        destination: '/api/auth/callback',
+        destination: '/auth/signin',
+        permanent: false,
+        has: [
+          {
+            type: 'query',
+            key: 'error',
+          },
+        ],
       },
     ];
   },

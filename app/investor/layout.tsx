@@ -17,6 +17,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Toaster } from "@/components/ui/toaster";
 
 const sidebarItems = [
   { name: "Basecamp", icon: BarChart2, href: "/investor/basecamp" },
@@ -118,6 +119,7 @@ export default function InvestorLayout({
 
       {/* Main Content */}
       <main className="flex-1 transition-all duration-300 md:ml-64">
+      <Toaster />
         {children}
       </main>
     </div>
