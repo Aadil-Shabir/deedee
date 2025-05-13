@@ -8,7 +8,7 @@ const nextConfig = {
     domains: [
       'localhost',
       'yoursupabaseproject.supabase.co',
-      // Add any other needed domains
+      'armdddpikowfbuuidftl.supabase.co', // Add your Supabase storage domain here
     ],
   },
   webpack: (config, { isServer }) => {

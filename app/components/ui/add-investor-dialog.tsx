@@ -1,15 +1,14 @@
 'use client';
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-// import { useAuth } from "@/components/AuthProvider";
-import { useUser } from "@/hooks/use-user";
-import { Contact } from "@/types/contacts";
-import { useInvestorFormState } from "@/hooks/user-investorFormState";
-// import { InvestorFormFields } from "./investors/InvestorFormFields";
+import { Contact } from "@/types/contact";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
-import { submitInvestorForm } from "@/services/investor-form-service";
-import InvestorFormFields from "./investor-profile/Investor-form-fields";
+import { AddInvestorForm } from "./company/fundraising/add-investor-form";
+import { InvestorFormData } from "@/types/investor-form";
+import { useUser } from "@/hooks/use-user";
+import { toast } from "sonner";
+import { mapContactToInvestorForm } from "@/utils/investor-mapping";
+import { submitInvestorByCompanyName } from "@/actions/actions.investor-form";
 
 interface AddInvestorDialogProps {
   open: boolean;
@@ -18,45 +17,84 @@ interface AddInvestorDialogProps {
   selectedContact?: Contact | null;
 }
 
-export function AddInvestorDialog({ open, onOpenChange, onAdd, selectedContact }: AddInvestorDialogProps) {
+export function AddInvestorDialog({ 
+  open, 
+  onOpenChange, 
+  onAdd, 
+  selectedContact
+}: AddInvestorDialogProps) {
   const { user } = useUser();
-  const {
-    formData,
-    isSubmitting,
-    setIsSubmitting,
-    isLoadingInvestor,
-    handleFieldChange,
-    handleToggleInvestment,
-    validateForm,
-    formErrors,
-    touchedFields
-  } = useInvestorFormState(selectedContact, open);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [initialFormData, setInitialFormData] = useState<Partial<InvestorFormData>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Load initial data when selectedContact changes
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (selectedContact && open) {
+        setIsLoading(true);
+        try {
+          const data = await mapContactToInvestorForm(selectedContact);
+          setInitialFormData(data);
+        } catch (error) {
+          console.error("Error loading contact data:", error);
+          toast.error("Failed to load contact data");
+        } finally {
+          setIsLoading(false);
+        }
+      } else if (open) {
+        setInitialFormData({});
+        setIsLoading(false);
+      }
+    };
     
-    // Validate form before submission
-    if (!validateForm()) {
-      return;
+    loadInitialData();
+  }, [selectedContact, open]);
+
+  // Handle form submission
+  const handleSubmit = useCallback(async (formData: InvestorFormData) => {
+    if (!user?.id) {
+      toast.error("You must be logged in to add investors");
+      return { success: false, error: "You must be logged in to add investors" };
     }
     
-    await submitInvestorForm(
-      formData,
-      user,
-      selectedContact,
-      setIsSubmitting,
-      onAdd,
-      onOpenChange
-    );
-  };
+    setIsSubmitting(true);
+    
+    try {
+      // Use the new server action that handles company lookup by name
+      const response = await submitInvestorByCompanyName(formData, user.id);
+      
+      if (!response.success) {
+        throw new Error(response.error || "Failed to save investor");
+      }
+      
+      // Show success message
+      toast.success(
+        selectedContact?.id 
+          ? "Investor updated successfully" 
+          : "Investor added successfully"
+      );
+      
+      // Call the onAdd callback with the result
+      onAdd(response.data);
+      
+      // Close the dialog
+      onOpenChange(false);
+      
+      return { success: true };
+    } catch (error: any) {
+      console.error("Error saving investor:", error);
+      toast.error(error.message || "Failed to save investor");
+      return { success: false, error: error.message || "Failed to save investor" };
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [user, selectedContact, onAdd, onOpenChange]);
 
-  const dialogTitle = selectedContact ? "Edit Investor" : "Add Investor/Firm Manually";
-  const submitButtonText = selectedContact 
-    ? (isSubmitting ? "Updating..." : "Update Investor") 
-    : (isSubmitting ? "Adding..." : "Add Investor");
-
+  const dialogTitle = selectedContact ? "Edit Investor" : "Add Investor";
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(value) => !isSubmitting && onOpenChange(value)}>
       <DialogContent className="bg-gray-900 border-gray-800 text-white max-w-2xl">
         <DialogHeader>
           <DialogTitle>{dialogTitle}</DialogTitle>
@@ -66,46 +104,17 @@ export function AddInvestorDialog({ open, onOpenChange, onAdd, selectedContact }
               : "Add a new investor to your pipeline, contacts, and database."}
           </DialogDescription>
         </DialogHeader>
-        {isLoadingInvestor ? (
-          <div className="py-8 flex justify-center">
-            <LoadingSpinner className="border-profile-purple" />
+        {isLoading ? (
+          <div className="flex justify-center items-center py-12">
+            <LoadingSpinner size="large" />
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <InvestorFormFields
-              formData={formData}
-              formErrors={formErrors}
-              touchedFields={touchedFields}
-              onFieldChange={handleFieldChange}
-              onToggleInvestment={handleToggleInvestment}
-            />
-            
-            <div className="flex justify-end space-x-4 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="border-gray-700 text-white hover:bg-gray-800"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                className="bg-profile-purple hover:bg-profile-purple/90"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center">
-                    <LoadingSpinner className="mr-2 h-4 w-4" />
-                    {submitButtonText}
-                  </span>
-                ) : (
-                  submitButtonText
-                )}
-              </Button>
-            </div>
-          </form>
+          <AddInvestorForm
+            onSubmit={handleSubmit}
+            onCancel={() => onOpenChange(false)}
+            initialData={initialFormData}
+            isSubmitting={isSubmitting}
+          />
         )}
       </DialogContent>
     </Dialog>

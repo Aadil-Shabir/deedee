@@ -1,7 +1,5 @@
-
-import { Contact } from "@/types/contact";
+import { Contact } from "@/types/contacts";
 import { useMemo } from "react";
-// import { Contact } from "@/types/contacts";
 
 interface ContactsFilterProps {
   contacts: Contact[];
@@ -22,19 +20,18 @@ export function ContactsFilter({ contacts, searchTerm }: ContactsFilterProps) {
           // We're keeping the company_name as is
         };
       }
-      return contact;
+      return contact; // Return unchanged contact if no semicolons
     });
 
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      result = result.filter(contact => 
-        contact.company_name?.toLowerCase().includes(searchLower) ||
-        contact.full_name?.toLowerCase().includes(searchLower) ||
-        contact.email?.toLowerCase().includes(searchLower) ||
-        contact.stage?.toLowerCase().includes(searchLower) ||
-        contact.hq_geography?.toLowerCase().includes(searchLower) ||
-        contact.investor_type?.toLowerCase().includes(searchLower) ||
-        contact.notes?.toLowerCase().includes(searchLower)
+    // Filter by search term if provided
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase().trim();
+      result = result.filter(
+        (contact) =>
+          (contact.full_name && contact.full_name.toLowerCase().includes(term)) ||
+          (contact.email && contact.email.toLowerCase().includes(term)) ||
+          (contact.company_name && contact.company_name.toLowerCase().includes(term)) ||
+          (contact.investor_type && contact.investor_type.toLowerCase().includes(term))
       );
     }
 

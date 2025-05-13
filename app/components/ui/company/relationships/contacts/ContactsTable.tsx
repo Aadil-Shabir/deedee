@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Contact } from "@/types/contact";
+import { Contact } from "@/types/contacts";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";

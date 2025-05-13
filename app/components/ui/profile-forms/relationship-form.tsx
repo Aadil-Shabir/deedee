@@ -1,5 +1,5 @@
 'use client';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { PageVisit } from "@/types/visits";
 import { useUser } from "@/hooks/use-user";
@@ -8,16 +8,20 @@ import { useVisitDetails } from "../company/relationships/hooks/useVisitDetails"
 import { useInvestorsData } from "../company/relationships/hooks/useInvestorsData";
 import { RelationshipsTabs } from "../company/relationships/RelationshipsTabs";
 import { PitchTrackerTab } from "../company/relationships/PitchTrackerTab";
-import { ContactsTab } from "../company/relationships/ContactsTab";
+import { ContactsTab } from "../company/relationships/contacts/ContactsTab";
 import { ProfileVisitsTab } from "../company/relationships/ProfileVisitsTab";
-import { RelationshipsDialogs } from "../company/relationships/RelationshipsDialogs";
-// import { useVisitDetails } from "../relationships/hooks/useVisitDetails";
-// import { useInvestorsData } from "../relationships/hooks/useInvestorsData";
-// import { RelationshipsTabs } from "../relationships/RelationshipsTabs";
-// import { PitchTrackerTab } from "../relationships/PitchTrackerTab";
-// import { ContactsTab } from "../relationships/ContactsTab";
-// import { ProfileVisitsTab } from "../relationships/ProfileVisitsTab";
-// import { RelationshipsDialogs } from "../relationships/RelationshipsDialogs";
+import { ContactsHeader } from "../company/relationships/contacts/ContactsHeader";
+import { RelationshipsDialogs } from "../company/relationships/relationship-dialog";
+import { toast } from "sonner";
+import { Contact } from "@/types/contact";
+import { Investor, InvestorDetails } from "@/types/investors";
+
+// Update the import summary interface to include skipped
+interface ImportSummary {
+  imported: number;
+  failed: number;
+  skipped?: number; // Make it optional for backward compatibility
+}
 
 const stages = [
   { id: "interested", label: "Interested", count: 1 },
@@ -42,9 +46,9 @@ const defaultPageVisits: PageVisit[] = [
       questions: 1,
       updates: 4,
       dataRoom: 2,
-      captable: 1
-    }
-  }
+      captable: 1,
+    },
+  },
 ];
 
 export default function Relationships() {
@@ -54,11 +58,11 @@ export default function Relationships() {
   const [mode, setMode] = useState("fan");
   const [searchTerm, setSearchTerm] = useState("");
   const [addInvestorOpen, setAddInvestorOpen] = useState(false);
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [pageVisits, setPageVisits] = useState<PageVisit[]>(defaultPageVisits);
-  
+  const [totals, setTotals] = useState({ reservations: 0, investments: 0 });
+
   const { visitDetails, setVisitDetails, handleVisitClick } = useVisitDetails();
-  
+
   const {
     investors,
     contacts,
@@ -71,15 +75,14 @@ export default function Relationships() {
     handleDragEnd,
     handleCardClick,
     handleEditContact,
-    refreshData
+    refreshData,
+    fetchInvestors // This is now properly typed
   } = useInvestorsData(user);
-
-  const handleChatClick = (contact: any) => {
-    navigate.push('/pulse');
-  };
-
-  const handleEmailClick = (contact: any) => {
-    navigate.push('/pulse');
+  
+  const fetchTotals = () => {
+    // Implement totals fetching logic here
+    console.log("Fetching totals");
+    // This is a placeholder - you should implement actual logic to fetch totals
   };
 
   const handleContactUpdated = () => {
@@ -87,9 +90,43 @@ export default function Relationships() {
     refreshData();
   };
 
+  const handleImportSuccess = (summary: ImportSummary) => {
+    fetchTotals();
+    fetchInvestors();
+    
+    // Create a detailed message
+    let message = `Successfully imported ${summary.imported} investors.`;
+    
+    // Check if skipped property exists and is greater than 0
+    if (summary.skipped && summary.skipped > 0) {
+      message += ` ${summary.skipped} duplicate${summary.skipped !== 1 ? 's' : ''} skipped.`;
+    }
+    
+    if (summary.failed > 0) {
+      message += ` ${summary.failed} record${summary.failed !== 1 ? 's' : ''} failed to import.`;
+    }
+    
+    // Display toast with appropriate status
+    if (summary.failed > 0) {
+      toast.info(message);
+    } else if (summary.skipped && summary.skipped > 0) {
+      toast.info(message);
+    } else {
+      toast.success(message);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full bg-[#0F111A] text-white">
       <div className="container mx-auto px-4 py-6">
+        <ContactsHeader
+          totals={totals}
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          onAddInvestor={() => setAddInvestorOpen(true)}
+          onImportSuccess={handleImportSuccess}
+        />
+
         <RelationshipsTabs
           activeTab={activeTab}
           onTabChange={setActiveTab}
@@ -114,8 +151,7 @@ export default function Relationships() {
                 setSelectedContact(null);
                 setAddInvestorOpen(true);
               }}
-              onImport={() => setImportDialogOpen(true)}
-              onEditContact={(contact:any) => {
+              onEditContact={(contact: Contact) => { // Properly typed parameter
                 handleEditContact(contact);
                 setAddInvestorOpen(true);
               }}
@@ -137,24 +173,22 @@ export default function Relationships() {
         setAddInvestorOpen={(open) => {
           setAddInvestorOpen(open);
           if (!open) {
-            // Refresh data when dialog closes, in case changes were made
             refreshData();
           }
         }}
-        importDialogOpen={importDialogOpen}
-        setImportDialogOpen={setImportDialogOpen}
         visitDetails={visitDetails}
         setVisitDetails={setVisitDetails}
         detailsOpen={detailsOpen}
         setDetailsOpen={setDetailsOpen}
         selectedInvestor={selectedInvestor}
         selectedContact={selectedContact}
-        onAddInvestor={(investor:any) => {
+        onAddInvestor={(investor: InvestorDetails) => { // Properly typed parameter
           if (investor) {
             handleAddInvestor(investor);
           }
-          refreshData(); // Ensure UI is refreshed after adding
+          refreshData();
         }}
+        onFetchTotals={fetchTotals}
       />
     </div>
   );

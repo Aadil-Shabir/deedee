@@ -1,245 +1,265 @@
 "use client";
 
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import React, { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
-import { FormField, CurrencyInput } from "./form-field";
-import { Check } from "lucide-react";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-
-interface InvestorFormData {
-  name: string;
-  company: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  type: string;
-  stage: string;
-  country: string;
-  city: string;
-  amount: string;
-  isInvestment: boolean;
-}
+import { Loader2 } from "lucide-react";
+import { InvestorFormData } from "@/types/investor-form";
+import InvestorFormFields from "../../investor-profile/Investor-form-fields";
 
 interface AddInvestorFormProps {
-  onSubmit: (data: InvestorFormData) => void;
+  onSubmit: (data: InvestorFormData) => Promise<{ success: boolean; error?: string }>;
+  onCancel: () => void;
+  initialData?: Partial<InvestorFormData>;
+  isSubmitting?: boolean;
 }
 
-export function AddInvestorForm({ onSubmit }: AddInvestorFormProps) {
+export function AddInvestorForm({
+  onSubmit,
+  onCancel,
+  initialData = {},
+  isSubmitting = false,
+}: AddInvestorFormProps) {
+  // Form validation state
+  const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isSubmittingState, setIsSubmitting] = useState<boolean>(false);
+
+  // Initialize form data with defaults and initial values
   const [formData, setFormData] = useState<InvestorFormData>({
-    name: "",
-    company: "",
-    email: "",
     firstName: "",
     lastName: "",
-    type: "",
+    companyName: "",
+    companyId: "",
+    email: "",
+    investorType: "",
     stage: "interested",
     country: "",
     city: "",
-    amount: "",
     isInvestment: false,
+    amount: "",
+    investmentType: "equity",
+    interestRate: "",
+    valuation: "",
+    numShares: "",
+    sharePrice: "",
   });
 
-  const handleInputChange = (field: keyof InvestorFormData, value: string | boolean) => {
-    setFormData({
-      ...formData,
-      [field]: value,
-    });
+  // Calculate share price - avoid storing in state to prevent loops
+  const calculatedSharePrice = useMemo(() => {
+    if (formData.isInvestment && formData.investmentType === 'equity') {
+      const amount = parseFloat(formData.amount) || 0;
+      const numShares = parseFloat(formData.numShares) || 0;
+      
+      if (amount > 0 && numShares > 0) {
+        return (amount / numShares).toFixed(2);
+      }
+    }
+    return formData.sharePrice || "0.00";
+  }, [formData.amount, formData.numShares, formData.isInvestment, formData.investmentType, formData.sharePrice]);
+
+  // Reset form when initialData changes - FIXED
+  useEffect(() => {
+    if (initialData) {
+      // Don't use formData in the spread to avoid loops
+      setFormData({
+        firstName: initialData.firstName || "",
+        companyId: initialData.companyId || "",
+        lastName: initialData.lastName || "",
+        companyName: initialData.companyName || "",
+        email: initialData.email || "",
+        investorType: initialData.investorType || "",
+        stage: initialData.stage || "interested",
+        country: initialData.country || "",
+        city: initialData.city || "",
+        isInvestment: initialData.isInvestment || false,
+        amount: initialData.amount || "",
+        investmentType: initialData.investmentType || "equity",
+        interestRate: initialData.interestRate || "",
+        valuation: initialData.valuation || "",
+        numShares: initialData.numShares || "",
+        sharePrice: initialData.sharePrice || "",
+      });
+      setErrors({});
+      setTouched({});
+    }
+  }, [initialData]); // formData removed from dependencies
+
+  // Handle field changes
+  const handleFieldChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Mark field as touched
+    if (!touched[field]) {
+      setTouched(prev => ({
+        ...prev,
+        [field]: true
+      }));
+    }
+
+    // Clear error when field is changed
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: null
+      }));
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Handle toggle for investment switch
+  const handleToggleInvestment = (checked: boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      isInvestment: checked
+    }));
+  };
+
+  // Validate form
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string | null> = {};
+    const newTouched: Record<string, boolean> = {};
+
+    // Mark all fields as touched
+    Object.keys(formData).forEach((key) => {
+      newTouched[key] = true;
+    });
+
+    // Required fields
+    if (!formData.firstName) {
+      newErrors.firstName = "First name is required";
+    }
+
+    if (!formData.lastName) {
+      newErrors.lastName = "Last name is required";
+    }
+    
+    if (!formData.companyName) {
+      newErrors.companyName = "Company name is required";
+    }
+
+    // Email validation
+    if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = "Invalid email address";
+    }
+    
+    // Amount validation for investment
+    if (formData.isInvestment) {
+      if (!formData.amount || parseFloat(formData.amount) <= 0) {
+        newErrors.amount = "Investment amount is required";
+      }
+      
+      if (formData.investmentType === 'debt' && !formData.interestRate) {
+        newErrors.interestRate = "Interest rate is required";
+      }
+      
+      if (formData.investmentType === 'equity') {
+        if (!formData.valuation || parseFloat(formData.valuation) <= 0) {
+          newErrors.valuation = "Valuation is required";
+        }
+        
+        if (!formData.numShares || parseFloat(formData.numShares) <= 0) {
+          newErrors.numShares = "Number of shares is required";
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    setTouched(newTouched);
+
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData);
+    
+    if (isSubmittingState) return;
+    if (!validateForm()) return;
+    
+    setIsSubmitting(true);
+    setSubmissionError(null);
+    
+    try {
+      const result = await onSubmit({
+        ...formData,
+        sharePrice: calculatedSharePrice,
+        ...(initialData.id ? { id: initialData.id } : {})
+      });
+      
+      if (!result.success) {
+        // Check if the error is about duplicate email
+        if (result.error && result.error.includes("email already exists")) {
+          setErrors(prev => ({
+            ...prev,
+            email: "This email is already associated with another investor"
+          }));
+          setIsSubmitting(false);
+          
+          // Scroll to the email field
+          document.getElementById('email')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          // Handle other errors
+          setSubmissionError(result.error || "Failed to save investor data");
+          setIsSubmitting(false);
+        }
+        return;
+      }
+      
+      // Success handling
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setSubmissionError("An unexpected error occurred");
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="company">Company/Fund Name</Label>
-          <Input
-            id="company"
-            placeholder="Enter company name"
-            value={formData.company}
-            onChange={(e) => handleInputChange("company", e.target.value)}
-            className="bg-zinc-800/50 border-zinc-700"
-          />
-        </div>
+      <InvestorFormFields
+        formData={{
+          ...formData,
+          sharePrice: calculatedSharePrice
+        }}
+        formErrors={errors}
+        touchedFields={touched}
+        onFieldChange={handleFieldChange}
+        onToggleInvestment={handleToggleInvestment}
+        isReadOnly={isSubmittingState}
+      />
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="firstName">First Name</Label>
-            <Input
-              id="firstName"
-              placeholder="Enter first name"
-              value={formData.firstName}
-              onChange={(e) => handleInputChange("firstName", e.target.value)}
-              className="bg-zinc-800/50 border-zinc-700"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="lastName">Last Name</Label>
-            <Input
-              id="lastName"
-              placeholder="Enter last name"
-              value={formData.lastName}
-              onChange={(e) => handleInputChange("lastName", e.target.value)}
-              className="bg-zinc-800/50 border-zinc-700"
-            />
-          </div>
-        </div>
+      {submissionError && (
+        <div className="text-red-500 text-sm">{submissionError}</div>
+      )}
 
-        <div className="space-y-2">
-          <Label htmlFor="email">Email Address</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="Enter email address"
-            value={formData.email}
-            onChange={(e) => handleInputChange("email", e.target.value)}
-            className="bg-zinc-800/50 border-zinc-700"
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="type">Investor Type</Label>
-            <Select
-              value={formData.type}
-              onValueChange={(value) => handleInputChange("type", value)}
-            >
-              <SelectTrigger id="type" className="bg-zinc-800/50 border-zinc-700">
-                <SelectValue placeholder="Select investor type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="angel">Angel</SelectItem>
-                <SelectItem value="vc">VC</SelectItem>
-                <SelectItem value="family_office">Family Office</SelectItem>
-                <SelectItem value="institutional">Institutional</SelectItem>
-                <SelectItem value="corporate">Corporate</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="stage">Stage</Label>
-            <Select
-              value={formData.stage}
-              onValueChange={(value) => handleInputChange("stage", value)}
-            >
-              <SelectTrigger id="stage" className="bg-zinc-800/50 border-zinc-700">
-                <SelectValue placeholder="Select stage" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="interested">Interested</SelectItem>
-                <SelectItem value="contacted">Contacted</SelectItem>
-                <SelectItem value="meeting">Meeting Scheduled</SelectItem>
-                <SelectItem value="dd">Due Diligence</SelectItem>
-                <SelectItem value="committed">Committed</SelectItem>
-                <SelectItem value="invested">Invested</SelectItem>
-                <SelectItem value="passed">Passed</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-zinc-800 pt-4">
-        <h3 className="font-medium text-zinc-100 mb-4">Location Information</h3>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="country">In what country are you located?</Label>
-              <div className="h-5 w-5 bg-green-900/30 rounded-full flex items-center justify-center">
-                <Check className="h-3 w-3 text-green-500" />
-              </div>
-            </div>
-            <Select
-              value={formData.country}
-              onValueChange={(value) => handleInputChange("country", value)}
-            >
-              <SelectTrigger id="country" className="bg-zinc-800/50 border-zinc-700">
-                <SelectValue placeholder="Select a country" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="us">United States</SelectItem>
-                <SelectItem value="uk">United Kingdom</SelectItem>
-                <SelectItem value="ca">Canada</SelectItem>
-                <SelectItem value="au">Australia</SelectItem>
-                <SelectItem value="de">Germany</SelectItem>
-                <SelectItem value="fr">France</SelectItem>
-                <SelectItem value="id">Indonesia</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="city">In what city are you living?</Label>
-              <div className="h-5 w-5 bg-green-900/30 rounded-full flex items-center justify-center">
-                <Check className="h-3 w-3 text-green-500" />
-              </div>
-            </div>
-            <Input
-              id="city"
-              placeholder="Enter your city"
-              value={formData.city}
-              onChange={(e) => handleInputChange("city", e.target.value)}
-              className="bg-zinc-800/50 border-zinc-700"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="border-t border-zinc-800 pt-4">
-        <h3 className="font-medium text-zinc-100 mb-4">Investment Details</h3>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-zinc-300">Is this an investment or a reservation?</span>
-            <div className="flex items-center gap-2">
-              <span className={`text-sm ${!formData.isInvestment ? "text-primary" : "text-zinc-500"}`}>
-                Reservation
-              </span>
-              <Switch
-                checked={formData.isInvestment}
-                onCheckedChange={(checked) => handleInputChange("isInvestment", checked)}
-              />
-              <span className={`text-sm ${formData.isInvestment ? "text-primary" : "text-zinc-500"}`}>
-                Investment
-              </span>
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="amount">
-              {formData.isInvestment ? "Investment Amount" : "Reservation Amount"}
-            </Label>
-            <CurrencyInput
-              id="amount"
-              value={formData.amount}
-              onChange={(value) => handleInputChange("amount", value)}
-              placeholder="Enter amount"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex justify-end gap-3 pt-2">
-        <Button type="button" variant="outline" className="border-zinc-700 text-zinc-300">
+      <div className="flex justify-end space-x-2 mt-6">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onCancel}
+          disabled={isSubmittingState}
+          className="text-gray-300 border-gray-700 hover:bg-gray-800 hover:text-white"
+        >
           Cancel
         </Button>
-        <Button type="submit" className="bg-primary hover:bg-primary/90">
-          Add Investor
+
+        <Button
+          type="submit"
+          disabled={isSubmittingState}
+          className="bg-profile-purple hover:bg-profile-purple/90"
+        >
+          {isSubmittingState ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save"
+          )}
         </Button>
       </div>
     </form>
   );
-} 
+}

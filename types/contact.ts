@@ -1,4 +1,3 @@
-
 export interface Contact {
     id: string;
     company_name: string;
@@ -16,6 +15,13 @@ export interface Contact {
     visit_count?: number;
     match_rate?: number;
     avatar?: string;
+    
+    // Fields for first/last name that might be present
+    first_name?: string;
+    last_name?: string;
+    company?: string;
+    country?: string;
+    city?: string;
     
     // Additional fields from investors_data table
     investments?: string;
@@ -47,5 +53,18 @@ export interface Contact {
     secondary_contact_function?: string;
     secondary_contact_mobile?: string;
     relationship_status?: string;
-  }
-  
+}
+
+export interface InvestorFormData {
+    id?: string;
+    first_name: string;
+    last_name: string;
+    company?: string;
+    email?: string;
+    type?: string;
+    stage?: string;
+    country?: string;
+    city?: string;
+    amount?: number | null;
+    is_investment?: boolean;
+}

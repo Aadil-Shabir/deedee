@@ -141,7 +141,6 @@ const DUMMY_INVESTORS: Record<string, Investor[]> = {
 };
 
 // Dummy data for contacts
-// Dummy data for contacts
 const DUMMY_CONTACTS: Contact[] = [
   {
     id: "c1",
@@ -299,7 +298,24 @@ const DUMMY_CONTACTS: Contact[] = [
   }
 ];
 
-export function useInvestorsData(user: User | null) {
+// Define the return type of the hook for better type safety
+interface InvestorsDataResult {
+  investors: Record<string, Investor[]>;
+  contacts: Contact[];
+  selectedInvestor: InvestorDetails | null;
+  detailsOpen: boolean;
+  setDetailsOpen: (open: boolean) => void;
+  selectedContact: Contact | null;
+  setSelectedContact: (contact: Contact | null) => void;
+  handleAddInvestor: (investor: InvestorDetails) => void;
+  handleDragEnd: (result: DropResult) => void;
+  handleCardClick: (investor: Investor) => void;
+  handleEditContact: (contact: Contact) => void;
+  refreshData: () => Promise<void>;
+  fetchInvestors: () => Promise<void>; // Added this explicitly
+}
+
+export function useInvestorsData(user: User | null): InvestorsDataResult {
   const [investors, setInvestors] = useState<Record<string, Investor[]>>(DUMMY_INVESTORS);
   const [contacts, setContacts] = useState<Contact[]>(DUMMY_CONTACTS);
   const [selectedInvestor, setSelectedInvestor] = useState<InvestorDetails | null>(null);
@@ -587,6 +603,7 @@ export function useInvestorsData(user: User | null) {
     handleDragEnd,
     handleCardClick,
     handleEditContact,
-    refreshData: fetchInvestors
+    refreshData: fetchInvestors,  
+    fetchInvestors // Explicitly return the fetchInvestors function
   };
 }

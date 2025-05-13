@@ -15,7 +15,7 @@ interface PitchTrackerTabProps {
   onCardClick: (investor: Investor) => void;
 }
 
-// DraggableCard Component
+// DraggableCard Component - Fix the props handling
 const DraggableCard = forwardRef<
   HTMLDivElement,
   {
@@ -27,11 +27,14 @@ const DraggableCard = forwardRef<
   <Card
     ref={ref}
     {...provided.draggableProps}
-    {...provided.dragHandleProps}
     className="bg-gray-800/50 p-4 rounded-lg border-gray-700 hover:bg-gray-800 transition-colors cursor-pointer"
     onClick={onClick}
   >
-    <div className="flex items-start space-x-3">
+    {/* Add a drag handle element inside the card */}
+    <div 
+      {...provided.dragHandleProps} 
+      className="flex items-start space-x-3"
+    >
       <Avatar className="h-8 w-8">
         <img
           src={investor.avatar}
@@ -107,7 +110,7 @@ const DroppableStages = ({
                     {(provided) => (
                       <DraggableCard
                         ref={provided.innerRef}
-                        provided={provided}
+                        provided={provided} // Pass the entire provided object
                         investor={investor}
                         onClick={() => onCardClick(investor)}
                       />
@@ -125,14 +128,7 @@ const DroppableStages = ({
 };
 
 // Main Component: PitchTrackerTab
-export function PitchTrackerTab({
-  investors,
-  stages,
-  onDragEnd,
-  onCardClick,
-}: PitchTrackerTabProps) {
-  // Use React.StrictMode.unstable_AsyncMode to help debug issues
-  // with react-beautiful-dnd in React 18
+export function PitchTrackerTab({ investors, stages, onDragEnd, onCardClick }: PitchTrackerTabProps) {
   return (
     <div className="relative">
       <HoverCard>
