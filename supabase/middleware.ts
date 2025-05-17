@@ -2,99 +2,94 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
+  // Create a response object
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers,
+    },
   })
 
+  // Create Supabase server client
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        getAll() {
-          return request.cookies.getAll()
+        get(name: string) {
+          return request.cookies.get(name)?.value
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
+        set(name: string, value: string, options: any) {
+          response.cookies.set({
+            name,
+            value,
+            ...options,
           })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+        },
+        remove(name: string, options: any) {
+          response.cookies.set({
+            name,
+            value: '',
+            ...options,
+          })
         },
       },
     }
   )
 
-  // Do not run code between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
-
-  // IMPORTANT: DO NOT REMOVE auth.getUser()
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
- 
-  // // print url
-  // console.log("url", request.nextUrl.pathname)
-  // console.log("user", user)
-  // if user logs in using linked_oidc auth instead of auth/callback do it 
-  if (
-    !user
-  ) {
-    // no user, potentially respond by redirecting the user to the login page
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/signin'
-    return NextResponse.redirect(url)
-  }
-
-  // console.log("user", user)
-
-  // fetch role from user_role table
-  const role = user.user_metadata.role;
-
+  // Refresh session if available
+  await supabase.auth.getSession()
   
-  // check for admin routes
-  if( request.nextUrl.pathname.startsWith('/admin')){
-    if(role !== 'admin'){
-      return NextResponse.redirect(new URL('/auth/signin', request.url));
+  // Get current user
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  // Skip role check on auth routes
+  if (request.nextUrl.pathname.startsWith('/auth')) {
+    return response
+  }
+
+  // If path is the root, redirect based on role
+  if (request.nextUrl.pathname === '/') {
+    if (!user) {
+      // Not logged in, redirect to sign in
+      return NextResponse.redirect(new URL('/auth/signin', request.url))
+    }
+    
+    // Check role and redirect accordingly
+    const role = user.user_metadata?.role || 'founder' // Default to founder if no role
+
+    if (role === 'investor') {
+      return NextResponse.redirect(new URL('/investor/basecamp', request.url))
     } else {
-      return supabaseResponse;
+      return NextResponse.redirect(new URL('/company/basecamp', request.url))
     }
   }
 
-  // check for investor routes
-  if( request.nextUrl.pathname.startsWith('/investor')){
-    if(role !== 'investor'){
-      return NextResponse.redirect(new URL('/auth/signin', request.url));
-    } else {
-      return supabaseResponse;
+  // Protected routes that need authentication
+  const protectedPaths = ['/company/', '/investor/']
+  
+  const isProtectedPath = protectedPaths.some(path => 
+    request.nextUrl.pathname.startsWith(path)
+  )
+  
+  if (isProtectedPath && !user) {
+    // Redirect to sign in if accessing protected routes without authentication
+    return NextResponse.redirect(new URL('/auth/signin', request.url))
+  }
+
+  // Check if user is accessing the correct route based on their role
+  if (user && user.user_metadata?.role) {
+    const role = user.user_metadata.role
+    
+    // Investor trying to access company routes
+    if (role === 'investor' && request.nextUrl.pathname.startsWith('/company/')) {
+      return NextResponse.redirect(new URL('/investor/basecamp', request.url))
+    }
+    
+    // Founder trying to access investor routes
+    if (role === 'founder' && request.nextUrl.pathname.startsWith('/investor/')) {
+      return NextResponse.redirect(new URL('/company/basecamp', request.url))
     }
   }
 
-  // check for founder routes
-  if( request.nextUrl.pathname.startsWith('/company')){
-    if(role !== 'founder'){
-      return NextResponse.redirect(new URL('/auth/signin', request.url));
-    } else {
-      return supabaseResponse;
-    }
-  }
-
-  // IMPORTANT: You *must* return the supabaseResponse object as it is.
-  // If you're creating a new response object with NextResponse.next() make sure to:
-  // 1. Pass the request in it, like so:
-  //    const myNewResponse = NextResponse.next({ request })
-  // 2. Copy over the cookies, like so:
-  //    myNewResponse.cookies.setAll(supabaseResponse.cookies.getAll())
-  // 3. Change the myNewResponse object to fit your needs, but avoid changing
-  //    the cookies!
-  // 4. Finally:
-  //    return myNewResponse
-  // If this is not done, you may be causing the browser and server to go out
-  // of sync and terminate the user's session prematurely!
-
-  return supabaseResponse
+  return response
 }

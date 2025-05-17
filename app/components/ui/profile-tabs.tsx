@@ -1,3 +1,4 @@
+import { TabId } from "@/app/company/profile/page";
 import { useState } from "react";
 
 const defaultTabItems = [
@@ -20,7 +21,7 @@ interface TabItem {
 
 interface ProfileTabsProps {
   activeTab: string;
-  onTabChange: (tabId: string) => void;
+  onTabChange: (tabId: TabId) => void;
   tabs?: TabItem[];
 }
 
@@ -38,7 +39,7 @@ export function ProfileTabs({ activeTab, onTabChange, tabs }: ProfileTabsProps) 
           {tabItems.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => onTabChange(tab.id)}
+              onClick={() => onTabChange(tab.id as TabId)}
               className={`py-4 px-2 text-sm font-medium transition-colors relative ${
                 activeTab === tab.id
                   ? specialTabs.includes(tab.id)

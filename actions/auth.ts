@@ -89,6 +89,8 @@ export async function signup({
           },
         ])
 
+        console.log('Role error:', roleError); 
+
       if (roleError) {
         return { success: false, error: roleError.message }
       }

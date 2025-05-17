@@ -74,7 +74,7 @@ export default function SignInPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'linkedin_oidc',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?showRoleSelect=true`,
+          redirectTo: `${window.location.origin}/company/basecamp`,
         },
       });
       if (error) throw error;
