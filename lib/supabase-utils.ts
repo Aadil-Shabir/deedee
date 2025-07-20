@@ -160,18 +160,37 @@ export const saveProfileInfo = async (
       return { success: false, error };
     }
 
-    // If role is provided, update it in the user_roles table
+    // Only update role if it's provided AND the user doesn't already have a role
     if (role) {
-      const { error: roleError } = await supabase
+      // First check if a role already exists for this user
+      const { data: existingRole, error: roleCheckError } = await supabase
         .from('user_roles')
-        .upsert({
-          user_id: user.id,
-          role: role
-        });
+        .select('role')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (roleCheckError) {
+        console.error('Error checking existing user role:', roleCheckError);
+        // Don't fail the entire operation if just this check fails
+      } else if (!existingRole) {
+        // Only insert a new role if one doesn't exist yet
+        console.log('No existing role found, setting initial role to:', role);
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: user.id,
+            role: role,
+            created_at: new Date().toISOString()
+          });
 
-      if (roleError) {
-        console.error('Error updating user role:', roleError);
-        // We don't fail the entire operation if just the role update fails
+        if (roleError) {
+          console.error('Error setting initial user role:', roleError);
+          // We don't fail the entire operation if just the role update fails
+        } else {
+          console.log('Successfully set initial role to:', role);
+        }
+      } else {
+        console.log('User already has role:', existingRole.role, '- not changing it');
       }
     }
 
@@ -313,4 +332,4 @@ export const saveIndustryInfo = async (
     console.error('Error in saveIndustryInfo:', error);
     return { success: false, error };
   }
-}; 
+};

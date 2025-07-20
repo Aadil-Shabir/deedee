@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import { useState, useEffect } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { PageVisit } from "@/types/visits";
@@ -15,6 +15,7 @@ import { RelationshipsDialogs } from "../company/relationships/relationship-dial
 import { toast } from "sonner";
 import { Contact } from "@/types/contact";
 import { Investor, InvestorDetails } from "@/types/investors";
+import { InvestorFormData } from "@/types/investor-form";
 
 // Update the import summary interface to include skipped
 interface ImportSummary {
@@ -60,6 +61,7 @@ export default function Relationships() {
   const [addInvestorOpen, setAddInvestorOpen] = useState(false);
   const [pageVisits, setPageVisits] = useState<PageVisit[]>(defaultPageVisits);
   const [totals, setTotals] = useState({ reservations: 0, investments: 0 });
+  const [isLoading, setIsLoading] = useState(false); // Add loading state
 
   const { visitDetails, setVisitDetails, handleVisitClick } = useVisitDetails();
 
@@ -76,9 +78,9 @@ export default function Relationships() {
     handleCardClick,
     handleEditContact,
     refreshData,
-    fetchInvestors // This is now properly typed
+    fetchInvestors, // This is now properly typed
   } = useInvestorsData(user);
-  
+
   const fetchTotals = () => {
     // Implement totals fetching logic here
     console.log("Fetching totals");
@@ -93,19 +95,23 @@ export default function Relationships() {
   const handleImportSuccess = (summary: ImportSummary) => {
     fetchTotals();
     fetchInvestors();
-    
+
     // Create a detailed message
     let message = `Successfully imported ${summary.imported} investors.`;
-    
+
     // Check if skipped property exists and is greater than 0
     if (summary.skipped && summary.skipped > 0) {
-      message += ` ${summary.skipped} duplicate${summary.skipped !== 1 ? 's' : ''} skipped.`;
+      message += ` ${summary.skipped} duplicate${
+        summary.skipped !== 1 ? "s" : ""
+      } skipped.`;
     }
-    
+
     if (summary.failed > 0) {
-      message += ` ${summary.failed} record${summary.failed !== 1 ? 's' : ''} failed to import.`;
+      message += ` ${summary.failed} record${
+        summary.failed !== 1 ? "s" : ""
+      } failed to import.`;
     }
-    
+
     // Display toast with appropriate status
     if (summary.failed > 0) {
       toast.info(message);
@@ -139,6 +145,7 @@ export default function Relationships() {
               stages={stages}
               onDragEnd={handleDragEnd}
               onCardClick={handleCardClick}
+              isLoading={isLoading} // Add this prop
             />
           </TabsContent>
 
@@ -151,7 +158,8 @@ export default function Relationships() {
                 setSelectedContact(null);
                 setAddInvestorOpen(true);
               }}
-              onEditContact={(contact: Contact) => { // Properly typed parameter
+              onEditContact={(contact: Contact) => {
+                // Properly typed parameter
                 handleEditContact(contact);
                 setAddInvestorOpen(true);
               }}
@@ -182,7 +190,8 @@ export default function Relationships() {
         setDetailsOpen={setDetailsOpen}
         selectedInvestor={selectedInvestor}
         selectedContact={selectedContact}
-        onAddInvestor={(investor: InvestorDetails) => { // Properly typed parameter
+        onAddInvestor={(investor: InvestorFormData) => {
+          // Properly typed parameter
           if (investor) {
             handleAddInvestor(investor);
           }

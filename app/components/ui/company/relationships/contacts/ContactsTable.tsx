@@ -47,6 +47,32 @@ export function ContactsTable({
     return 'text-white font-medium';
   };
 
+  // Safe handler for edit button
+  const handleEditClick = (contact: Contact, e: React.MouseEvent) => {
+    // Prevent any parent event handlers from firing
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Call the edit function with the contact data
+    onEditClick(contact);
+    
+    // Close the dropdown menu to prevent UI issues
+    document.body.click(); // Force close any open dropdown
+  };
+  
+  // Safe handler for delete button
+  const handleDeleteClick = (contact: Contact, e: React.MouseEvent) => {
+    // Prevent any parent event handlers from firing
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Call the delete function with the contact data
+    onDeleteClick(contact);
+    
+    // Close the dropdown menu to prevent UI issues
+    document.body.click(); // Force close any open dropdown
+  };
+
   return (
     <div className="overflow-x-auto rounded-md border border-gray-800 mt-4">
       <table className="w-full text-sm text-left text-gray-300">
@@ -154,20 +180,40 @@ export function ContactsTable({
                 <td className="px-4 py-3 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        className="h-8 w-8 p-0"
+                        onClick={(e) => {
+                          // Prevent clicks on the button from propagating
+                          e.stopPropagation();
+                        }}
+                      >
                         <MoreHorizontal className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="bg-gray-900 border-gray-700">
+                    <DropdownMenuContent 
+                      align="end" 
+                      className="bg-gray-900 border-gray-700"
+                      // Make sure dropdown clicks don't propagate to the document
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <DropdownMenuItem
-                        onClick={() => onEditClick(contact)}
+                        onClick={(e) => handleEditClick(contact, e)}
                         className="text-white hover:bg-gray-800 cursor-pointer"
+                        // Add additional protection against event bubbling
+                        onSelect={(e) => {
+                          e?.preventDefault();
+                        }}
                       >
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => onDeleteClick(contact)}
+                        onClick={(e) => handleDeleteClick(contact, e)}
                         className="text-red-500 hover:bg-gray-800 cursor-pointer"
+                        // Add additional protection against event bubbling
+                        onSelect={(e) => {
+                          e?.preventDefault();
+                        }}
                       >
                         Delete
                       </DropdownMenuItem>

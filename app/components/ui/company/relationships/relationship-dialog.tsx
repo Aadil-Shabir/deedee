@@ -3,6 +3,7 @@ import { Contact } from "@/types/contacts";
 import { InvestorDetailsDialog } from "../../investor-details-dialog";
 import { VisitDetailsDialog } from "../../visit-details-dialog";
 import { AddInvestorDialog } from "../../add-investor-dialog";
+import { InvestorFormData } from "@/types/investor-form"; // Add this import
 
 interface RelationshipsDialogsProps {
   addInvestorOpen: boolean;
@@ -19,7 +20,7 @@ interface RelationshipsDialogsProps {
   setDetailsOpen: (open: boolean) => void;
   selectedInvestor: InvestorDetails | null;
   selectedContact: Contact | null;
-  onAddInvestor: (investor?: any) => void;
+  onAddInvestor: (investor: InvestorFormData) => void; // Changed to InvestorFormData
   onFetchTotals?: () => void;
 }
 
@@ -40,7 +41,7 @@ export function RelationshipsDialogs({
       <AddInvestorDialog
         open={addInvestorOpen}
         onOpenChange={setAddInvestorOpen}
-        onAdd={(investor) => {
+        onAdd={(investor: InvestorFormData) => {
           // Call onAddInvestor with the investor data
           onAddInvestor(investor);
           
