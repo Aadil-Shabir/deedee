@@ -167,11 +167,9 @@ export default function Admin() {
     return (
         <div className="flex flex-col min-h-screen bg-background">
             {/* Header */}
-            <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-                <div className="mb-6 sm:mb-8">
-                    <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-foreground mb-2">
-                        Investor Management
-                    </h1>
+            <header className="flex h-[77px] shrink-0 items-center gap-2 border-b px-4 py-4">
+                <div className="">
+                    <h1 className="text-xl sm:text-2xl lg:text-2xl font-bold text-foreground">Investor Management</h1>
                     <p className="text-sm sm:text-base text-muted-foreground">
                         Upload and manage investor data from CSV or XLSX files
                     </p>
