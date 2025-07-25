@@ -1,4 +1,5 @@
 import { Contact } from "./contacts";
+import { InvestorSource } from "./investor-source";
 
 export interface InvestorFormData {
     companyName: string;
@@ -73,42 +74,39 @@ export interface InvestorServiceInterface {
     createInvestorPipeline: (investorId: string, founderId: string, stage: string) => Promise<void>;
 }
 
-export interface InvestorCsvData {
-    id?: string; // UUID, added for table key
-    InvestorFirm: string; // Mandatory
-    InvestmentType: string; // Mandatory
-    InvestorType: string; // Mandatory
-    InvestorRelations: string; // Mandatory
-    BusinessStages: string; // Mandatory
-    HQGeography: string; // Mandatory
-    HQCountry: string; // Mandatory
-    HQCity: string; // Mandatory
-    GeneralEmail: string; // Mandatory
-    PrimaryContactEmail: string; // Mandatory
-    PrimaryContactFirstName: string; // Mandatory
-    PrimaryContactLastName: string; // Mandatory
-    // Optional fields
-    FundingStage?: string | null;
-    RelationshipStatus?: string | null;
-    Investments?: string | null;
-    BusinessType?: string | null;
-    Sector?: string | null;
-    BusinessKind?: string | null;
-    PreferredVerticals?: string | null;
-    WebUrl?: string | null;
-    Crunchbase?: string | null;
-    PrimaryContactFunction?: string | null;
-    PrimaryContactMobile?: string | null;
-    PrimaryContactLinkedin?: string | null;
-    PrimaryContactTwitter?: string | null;
-    SecondaryContactFirstName?: string | null;
-    SecondaryContactLastName?: string | null;
-    SecondaryContactEmail?: string | null;
-    SecondaryContactLinkedin?: string | null;
-    SecondaryContactTwitter?: string | null;
-    SecondaryContactFunction?: string | null;
-    SecondaryContactMobile?: string | null;
-    Introducer?: string | null;
-    IntroducerEmail?: string | null;
-    isDuplicate?: boolean; // Flag to indicate if the contact is a duplicate
-}
+export type InvestorCsvData = {
+    id?: string;
+    firm_name: string | null;
+    website_url: string | null;
+    linkedin_url: string | null;
+    investor_type: "Angel" | "VC" | "CVC" | "FO" | "Fund of Funds" | null;
+    hq_location: string | null;
+    other_locations: string[] | null;
+    fund_size: number | null;
+    stage_focus: string[] | null;
+    check_size_range: string | null;
+    geographies_invested: string[] | null;
+    industries_invested: string[] | null;
+    sub_industries_invested: string[] | null;
+    portfolio_companies: Array<{
+        name: string;
+        url?: string;
+        industry?: string;
+        date?: string;
+    }> | null;
+    investment_thesis_summary: string | null;
+    thesis_industry_distribution: Record<string, number> | null;
+    fund_vintage_year: number | null;
+    recent_exits: string[] | null;
+    activity_score: number | null;
+    last_updated_at: string | null;
+    isDuplicate?: boolean;
+    source: string;
+};
+
+export type InvestorUploadError = {
+    row: number;
+    field: string;
+    message: string;
+    value?: any;
+};
