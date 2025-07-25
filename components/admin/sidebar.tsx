@@ -17,6 +17,7 @@ import {
     Shield,
     ChevronDown,
     ChevronRight,
+    UserCheck,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -31,6 +32,17 @@ const sidebarItems = [
         submenu: [
             { name: "Upload Data", href: "/admin/investors/firms/upload", isActive: true },
             { name: "View All", href: "/admin/investors/firms", isActive: true },
+        ],
+    },
+    {
+        name: "Investor Contacts",
+        icon: UserCheck,
+        href: "/admin/investors/contacts",
+        isActive: true,
+        hasSubmenu: true,
+        submenu: [
+            { name: "Upload Data", href: "/admin/investors/contacts/upload", isActive: true },
+            { name: "View All", href: "/admin/investors/contacts", isActive: true },
         ],
     },
     { name: "Courses", icon: Book, href: "/admin/courses", isActive: false, comingSoon: true },

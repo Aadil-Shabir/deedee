@@ -16,7 +16,8 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Search, Users, Building2, Mail, Loader2, AlertTriangle, Send, UserCheck, X } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Search, Users, Building2, Mail, Loader2, AlertTriangle, Send, UserCheck, X, CheckCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 // Types
@@ -52,6 +53,13 @@ export function SendToFoundersModal({
     const [search, setSearch] = useState("");
     const [selectedFounders, setSelectedFounders] = useState<string[]>([]);
     const [sending, setSending] = useState(false);
+    const [sendResult, setSendResult] = useState<{
+        success: boolean;
+        message: string;
+        insertedCount: number;
+        duplicateCount: number;
+        details?: any;
+    } | null>(null);
 
     // Filtered founders based on search
     const filteredFounders = useMemo(() => {
@@ -74,18 +82,31 @@ export function SendToFoundersModal({
         setError(null);
 
         try {
+            console.log("🔄 Fetching founders...");
             const response = await fetch("/api/admin/founders");
 
             if (!response.ok) {
                 const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to fetch founders");
+                console.error("❌ Fetch founders failed:", errorData);
+                throw new Error(errorData.error || `HTTP ${response.status}: Failed to fetch founders`);
             }
 
             const data = await response.json();
+            console.log("✅ Founders fetched successfully:", data);
+
+            if (!data.success) {
+                throw new Error(data.error || "Failed to fetch founders");
+            }
+
             setFounders(data.founders || []);
         } catch (err: any) {
             console.error("❌ Error fetching founders:", err);
             setError(err.message);
+            toast({
+                title: "Error",
+                description: `Failed to load founders: ${err.message}`,
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }
@@ -97,6 +118,7 @@ export function SendToFoundersModal({
             fetchFounders();
             setSearch("");
             setSelectedFounders([]);
+            setSendResult(null);
         }
     }, [open]);
 
@@ -127,8 +149,14 @@ export function SendToFoundersModal({
         }
 
         setSending(true);
+        setSendResult(null);
 
         try {
+            console.log("🚀 Sending firms to founders...", {
+                founderIds: selectedFounders,
+                investorFirmIds: selectedFirmIds,
+            });
+
             const response = await fetch("/api/admin/founder-contacts", {
                 method: "POST",
                 headers: {
@@ -140,17 +168,26 @@ export function SendToFoundersModal({
                 }),
             });
 
+            const result = await response.json();
+            console.log("📥 Send result:", result);
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || "Failed to send investor firms to founders");
+                console.error("❌ Send failed with status:", response.status, result);
+                throw new Error(result.error || `HTTP ${response.status}: Failed to send investor firms to founders`);
             }
 
-            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || "Failed to send investor firms to founders");
+            }
+
+            // Set the result to show in UI
+            setSendResult(result);
 
             // Show success toast
             toast({
                 title: "Success!",
                 description: result.message,
+                duration: 5000,
             });
 
             // Show additional info if there were duplicates
@@ -160,18 +197,30 @@ export function SendToFoundersModal({
                     description: `${result.duplicateCount} contact${
                         result.duplicateCount > 1 ? "s" : ""
                     } already existed and ${result.duplicateCount > 1 ? "were" : "was"} skipped.`,
+                    duration: 4000,
                 });
             }
 
-            // Close modal and trigger success callback
-            onOpenChange(false);
-            onSuccess();
+            // Auto-close modal after 3 seconds and trigger success callback
+            setTimeout(() => {
+                onOpenChange(false);
+                onSuccess();
+            }, 3000);
         } catch (error: any) {
             console.error("❌ Send to founders failed:", error);
+
+            setSendResult({
+                success: false,
+                message: error.message,
+                insertedCount: 0,
+                duplicateCount: 0,
+            });
+
             toast({
                 title: "Error",
                 description: `Failed to send investor firms: ${error.message}`,
                 variant: "destructive",
+                duration: 6000,
             });
         } finally {
             setSending(false);
@@ -220,6 +269,28 @@ export function SendToFoundersModal({
                 {/* Scrollable Content */}
                 <div className="flex-1 min-h-0 px-6 pb-0">
                     <div className="space-y-4 h-full flex flex-col">
+                        {/* Send Result Alert */}
+                        {sendResult && (
+                            <Alert
+                                className={`flex-shrink-0 ${
+                                    sendResult.success ? "border-green-200 bg-green-50" : "border-red-200 bg-red-50"
+                                }`}
+                            >
+                                <div className="flex items-center gap-2">
+                                    {sendResult.success ? (
+                                        <CheckCircle className="h-4 w-4 text-green-600" />
+                                    ) : (
+                                        <AlertTriangle className="h-4 w-4 text-red-600" />
+                                    )}
+                                    <AlertDescription
+                                        className={sendResult.success ? "text-green-800" : "text-red-800"}
+                                    >
+                                        {sendResult.message}
+                                    </AlertDescription>
+                                </div>
+                            </Alert>
+                        )}
+
                         {/* Search */}
                         <div className="relative flex-shrink-0">
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -228,6 +299,7 @@ export function SendToFoundersModal({
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 className="pl-9"
+                                disabled={sending}
                             />
                         </div>
 
@@ -247,6 +319,7 @@ export function SendToFoundersModal({
                                         size="sm"
                                         onClick={toggleSelectAll}
                                         className="h-auto p-1 text-xs hover:bg-transparent hover:text-primary"
+                                        disabled={sending}
                                     >
                                         {selectedFounders.length === filteredFounders.length
                                             ? "Deselect All"
@@ -268,6 +341,7 @@ export function SendToFoundersModal({
                                     size="sm"
                                     onClick={() => setSelectedFounders([])}
                                     className="ml-auto h-6 w-6 p-0 hover:bg-primary/10"
+                                    disabled={sending}
                                 >
                                     <X className="h-3 w-3" />
                                 </Button>
@@ -322,13 +396,14 @@ export function SendToFoundersModal({
                                                         selectedFounders.includes(founder.id)
                                                             ? "bg-primary/5 border-primary/30"
                                                             : "border-border hover:border-primary/20"
-                                                    }`}
-                                                    onClick={() => toggleFounderSelection(founder.id)}
+                                                    } ${sending ? "opacity-50 cursor-not-allowed" : ""}`}
+                                                    onClick={() => !sending && toggleFounderSelection(founder.id)}
                                                 >
                                                     <Checkbox
                                                         checked={selectedFounders.includes(founder.id)}
                                                         onChange={() => toggleFounderSelection(founder.id)}
                                                         className="flex-shrink-0"
+                                                        disabled={sending}
                                                     />
 
                                                     <Avatar className="h-10 w-10 flex-shrink-0">
@@ -382,25 +457,28 @@ export function SendToFoundersModal({
                             disabled={sending}
                             className="w-full sm:w-auto"
                         >
-                            Cancel
+                            {sendResult?.success ? "Close" : "Cancel"}
                         </Button>
-                        <Button
-                            onClick={handleSendToFounders}
-                            disabled={sending || selectedFounders.length === 0}
-                            className="w-full sm:w-auto"
-                        >
-                            {sending ? (
-                                <>
-                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                                    Sending...
-                                </>
-                            ) : (
-                                <>
-                                    <Send className="h-4 w-4 mr-2" />
-                                    Send to {selectedFounders.length} Founder{selectedFounders.length !== 1 ? "s" : ""}
-                                </>
-                            )}
-                        </Button>
+                        {!sendResult?.success && (
+                            <Button
+                                onClick={handleSendToFounders}
+                                disabled={sending || selectedFounders.length === 0}
+                                className="w-full sm:w-auto"
+                            >
+                                {sending ? (
+                                    <>
+                                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                        Sending...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Send className="h-4 w-4 mr-2" />
+                                        Send to {selectedFounders.length} Founder
+                                        {selectedFounders.length !== 1 ? "s" : ""}
+                                    </>
+                                )}
+                            </Button>
+                        )}
                     </DialogFooter>
                 </div>
             </DialogContent>

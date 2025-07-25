@@ -1,6 +1,21 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+// Define types for the data structure
+interface Company {
+    id: string;
+    company_name: string;
+}
+
+interface Profile {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    company_function: string;
+    companies: Company | Company[] | null;
+}
+
 // Server-side admin client with service key
 function createAdminClient() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -16,64 +31,77 @@ function createAdminClient() {
 
 export async function GET(request: NextRequest) {
     try {
-        const { searchParams } = new URL(request.url);
-        const search = searchParams.get("search") || "";
+        console.log("🔄 Starting to fetch founders...");
 
         const supabase = createAdminClient();
 
-        // Build query to get founders with their company information
-        let query = supabase.from("profiles").select(`
+        // Fetch profiles with their associated companies
+        const { data: profiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select(
+                `
         id,
         first_name,
         last_name,
         email,
         company_function,
-        companies!companies_owner_id_fkey (
+        companies!owner_id (
           id,
           company_name
         )
-      `);
+      `
+            )
+            .order("first_name", { ascending: true });
 
-        // Apply search filter if provided
-        if (search) {
-            query = query.or(
-                `first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%,company_function.ilike.%${search}%`
-            );
+        if (profilesError) {
+            console.error("❌ Error fetching profiles:", profilesError);
+            throw new Error(`Failed to fetch profiles: ${profilesError.message}`);
         }
 
-        // Order by first name alphabetically
-        const { data: founders, error } = await query.order("first_name", { ascending: true });
+        console.log(`📥 Fetched ${profiles?.length || 0} profiles`);
 
-        if (error) {
-            console.error("❌ Error fetching founders:", error);
-            throw error;
-        }
+        // Transform the data to include company information
+        const founders =
+            (profiles as Profile[])?.map((profile) => {
+                // Handle the companies relationship - it could be an array, single object, or null
+                let companyName: string | null = null;
+                let companyId: string | null = null;
 
-        // Transform the data to include company name directly
-        const transformedFounders =
-            founders?.map((founder) => {
-                // Handle the case where companies might be an array or a single object
-                const company = Array.isArray(founder.companies) ? founder.companies[0] : founder.companies;
+                if (profile.companies) {
+                    if (Array.isArray(profile.companies)) {
+                        // If it's an array, take the first company
+                        const firstCompany = profile.companies[0];
+                        if (firstCompany) {
+                            companyName = firstCompany.company_name;
+                            companyId = firstCompany.id;
+                        }
+                    } else {
+                        // If it's a single object
+                        companyName = profile.companies.company_name;
+                        companyId = profile.companies.id;
+                    }
+                }
 
                 return {
-                    id: founder.id,
-                    first_name: founder.first_name,
-                    last_name: founder.last_name,
-                    email: founder.email,
-                    company_function: founder.company_function,
-                    company_name: company?.company_name || null,
-                    company_id: company?.id || null,
+                    id: profile.id,
+                    first_name: profile.first_name,
+                    last_name: profile.last_name,
+                    email: profile.email,
+                    company_function: profile.company_function,
+                    company_name: companyName,
+                    company_id: companyId,
                 };
             }) || [];
 
-        console.log(`✅ Fetched ${transformedFounders.length} founders`);
+        console.log(`✅ Processed ${founders.length} founders with company data`);
 
         return NextResponse.json({
-            founders: transformedFounders,
-            total: transformedFounders.length,
+            success: true,
+            founders,
+            total: founders.length,
         });
     } catch (error: any) {
-        console.error("❌ API Get founders operation failed:", error);
+        console.error("❌ API Fetch founders operation failed:", error);
         return NextResponse.json(
             {
                 error: "Failed to fetch founders",
