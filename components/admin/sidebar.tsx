@@ -18,33 +18,19 @@ import {
     ChevronDown,
     ChevronRight,
     UserCheck,
+    TrendingUp,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 const sidebarItems = [
     { name: "Dashboard", icon: BarChart2, href: "/admin", isActive: true },
     {
-        name: "Investor Firms",
-        icon: Users,
-        href: "/admin/investors/firms",
+        name: "Investors",
+        icon: TrendingUp,
+        href: "/admin/investors",
         isActive: true,
-        hasSubmenu: true,
-        submenu: [
-            { name: "Upload Data", href: "/admin/investors/firms/upload", isActive: true },
-            { name: "View All", href: "/admin/investors/firms", isActive: true },
-        ],
     },
-    {
-        name: "Investor Contacts",
-        icon: UserCheck,
-        href: "/admin/investors/contacts",
-        isActive: true,
-        hasSubmenu: true,
-        submenu: [
-            { name: "Upload Data", href: "/admin/investors/contacts/upload", isActive: true },
-            { name: "View All", href: "/admin/investors/contacts", isActive: true },
-        ],
-    },
+
     { name: "Courses", icon: Book, href: "/admin/courses", isActive: false, comingSoon: true },
     { name: "Templates", icon: FileText, href: "/admin/templates", isActive: false, comingSoon: true },
     { name: "Resources", icon: Folder, href: "/admin/resources", isActive: false, comingSoon: true },
