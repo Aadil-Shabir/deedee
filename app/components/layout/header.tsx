@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Info, UserCircle, Settings, HelpCircle, LogOut, PlusCircle } from "lucide-react";
+import { ChevronDown, Info, UserCircle, Settings, HelpCircle, LogOut, PlusCircle,Eye } from "lucide-react";
 import Image from "next/image";
 import { useUser } from "@/hooks/use-user";
 import { useState, useEffect } from "react";
@@ -105,13 +105,36 @@ export function Header() {
         // Fetch user profile data that might contain profile picture URL
         const { data: profileData } = await supabase
           .from('profiles')
-          .select('profile_picture_url')
+          .select('first_name, last_name, profile_picture_url',)
           .eq('id', user.id)
           .single();
+
+
+          if (profileData) {
+            
+            if (profileData.first_name && profileData.last_name) {
+              setUserName(`${profileData.first_name} ${profileData.last_name}`);
+            } else if (profileData.first_name) {
+              setUserName(profileData.first_name);
+            } else if (user.email) {
+              
+              setUserName(user.email.split('@')[0]);
+            }
           
         if (profileData?.profile_picture_url) {
           setProfilePicture(profileData.profile_picture_url);
         }
+
+        } else {
+           
+            const firstName = user.user_metadata?.first_name;
+            const lastName = user.user_metadata?.last_name;
+            if (firstName && lastName) {
+              setUserName(`${firstName} ${lastName}`);
+            } else if (user.email) {
+              setUserName(user.email.split('@')[0]);
+            }
+          }
         
         setIsLoadingCompanies(false);
       } catch (error) {
@@ -236,8 +259,9 @@ export function Header() {
           <Button className="bg-primary hover:bg-primary/90 text-white">
             Upgrade
           </Button>
-          <Link href={`/company/${activeCompanyId}`}>
-          <Button className="bg-primary hover:bg-primary/90 text-white">
+          <Link href={`/company/${activeCompanyId}` } target="_blank" rel="noopener noreferrer">
+          <Button className="bg-primary hover:bg-primary/90 text-white flex items-center gap-2">
+          <Eye className="h-5 w-5 "/>
            Public View
           </Button>
           </Link>
@@ -252,7 +276,7 @@ export function Header() {
                       alt={userName}
                       width={32} 
                       height={32}
-                      className="h-full w-full object-cover"
+                      className="w-full h-full object-cover rounded-full"
                     />
                   ) : (
                     <span className="text-zinc-300 text-sm">{getUserInitials()}</span>

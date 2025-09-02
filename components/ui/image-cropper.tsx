@@ -32,7 +32,21 @@ export function ImageCropper({
   const imgRef = useRef<HTMLImageElement>(null);
 
   const getCroppedImg = () => {
-    if (!completedCrop || !imgRef.current) return;
+    if (!imgRef.current) return;
+
+    let pixelCrop = completedCrop;
+    if (!pixelCrop || !pixelCrop.width || !pixelCrop.height) {
+      if (!crop.width || !crop.height) return;
+
+      const image = imgRef.current;
+      pixelCrop = {
+        x: (crop.x / 100) * image.width,
+        y: (crop.y / 100) * image.height,
+        width: (crop.width / 100) * image.width,
+        height: (crop.height / 100) * image.height,
+        unit: "px",
+      } as PixelCrop;
+    }
 
     const canvas = document.createElement("canvas");
     const image = imgRef.current;
@@ -44,44 +58,47 @@ export function ImageCropper({
       throw new Error("No 2d context");
     }
 
-    canvas.width = completedCrop.width;
-    canvas.height = completedCrop.height;
+    canvas.width = pixelCrop.width;
+    canvas.height = pixelCrop.height;
 
     // Draw the cropped image onto the canvas
     ctx.drawImage(
       image,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
+      pixelCrop.x * scaleX,
+      pixelCrop.y * scaleY,
+      pixelCrop.width * scaleX,
+      pixelCrop.height * scaleY,
       0,
       0,
-      completedCrop.width,
-      completedCrop.height
+      pixelCrop.width,
+      pixelCrop.height
     );
 
     // Convert canvas to blob and then to a URL
-    canvas.toBlob((blob) => {
-      if (!blob) {
-        console.error("Canvas is empty");
-        return;
-      }
-      const croppedImageUrl = URL.createObjectURL(blob);
-      
-      // Create a FileReader to convert the blob to a data URL for uploading
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (typeof reader.result === "string") {
-          // Provide the data URL to the parent component
-          onCropComplete(reader.result);
-        } else {
-          console.error("Failed to convert blob to data URL");
-          onCropComplete(croppedImageUrl); // Fallback to object URL
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          console.error("Canvas is empty");
+          return;
         }
-      };
-      reader.readAsDataURL(blob);
-      
-    }, "image/jpeg", 0.95); // Use higher quality JPEG
+        const croppedImageUrl = URL.createObjectURL(blob);
+
+        // Create a FileReader to convert the blob to a data URL for uploading
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (typeof reader.result === "string") {
+            // Provide the data URL to the parent component
+            onCropComplete(reader.result);
+          } else {
+            console.error("Failed to convert blob to data URL");
+            onCropComplete(croppedImageUrl); // Fallback to object URL
+          }
+        };
+        reader.readAsDataURL(blob);
+      },
+      "image/jpeg",
+      0.95
+    ); // Use higher quality JPEG
   };
 
   return (
@@ -95,9 +112,9 @@ export function ImageCropper({
         >
           <X className="h-4 w-4" />
         </Button>
-        
+
         <h3 className="mb-4 text-xl font-semibold">Crop Image</h3>
-        
+
         <div className="mb-6 rounded-md bg-muted/30 p-1">
           <ReactCrop
             crop={crop}
@@ -115,16 +132,14 @@ export function ImageCropper({
             />
           </ReactCrop>
         </div>
-        
+
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button onClick={getCroppedImg}>
-            Apply Crop
-          </Button>
+          <Button onClick={getCroppedImg}>Apply Crop</Button>
         </div>
       </div>
     </div>
   );
-} 
+}

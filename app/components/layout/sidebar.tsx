@@ -18,7 +18,7 @@ import {
   X,
   BarChart3,
   HelpCircle,
-  LogOut
+  LogOut,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -39,51 +39,57 @@ const sidebarLinks = [
   {
     name: "Basecamp",
     href: "/company/basecamp",
-    icon: Layout
+    icon: Layout,
   },
   {
     name: "Profile",
     href: "/company/profile",
-    icon: UserCircle
+    icon: UserCircle,
   },
   {
     name: "Relationships",
     href: "/company/relationships",
-    icon: Users
+    icon: Users,
   },
   {
     name: "Pulse",
     href: "/company/pulse",
-    icon: Calendar
+    icon: Calendar,
   },
   {
     name: "Files",
     href: "/company/files",
-    icon: FileText
+    icon: FileText,
   },
   {
     name: "Updates",
     href: "/company/updates",
-    icon: SendHorizontal
+    icon: SendHorizontal,
   },
   {
     name: "Learning",
     href: "/company/learning",
-    icon: BookOpen
+    icon: BookOpen,
   },
   {
     name: "Score Card",
     href: "/company/score-card",
-    icon: BarChart3
+    icon: BarChart3,
   },
   {
     name: "Settings",
     href: "/company/settings",
-    icon: Settings
-  }
+    icon: Settings,
+  },
 ];
 
-function SidebarContent({ className, closeMobileMenu }: { className?: string; closeMobileMenu?: () => void }) {
+function SidebarContent({
+  className,
+  closeMobileMenu,
+}: {
+  className?: string;
+  closeMobileMenu?: () => void;
+}) {
   const pathname = usePathname();
   const { user } = useUser();
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -94,67 +100,83 @@ function SidebarContent({ className, closeMobileMenu }: { className?: string; cl
   const handleLogout = async () => {
     try {
       // Import dynamically to avoid server-side issues
-      const { createClient } = await import('@/supabase/supabase');
+      const { createClient } = await import("@/supabase/supabase");
       const supabase = createClient();
-      
+
       // Sign out the user
       const { error } = await supabase.auth.signOut();
-      
+
       if (error) {
-        console.error('Error signing out:', error);
+        console.error("Error signing out:", error);
         return;
       }
-      
+
       // Redirect to login page after successful logout
-      window.location.href = '/auth/signin';
+      window.location.href = "/auth/signin";
     } catch (error) {
-      console.error('Error during logout:', error);
+      console.error("Error during logout:", error);
     }
   };
 
   // Load user profile data when user object is available
   useEffect(() => {
     if (user) {
-      // Set user name from metadata or email
-      const firstName = user.user_metadata?.first_name;
-      const lastName = user.user_metadata?.last_name;
-      if (firstName && lastName) {
-        setUserName(`${firstName} ${lastName}`);
-      } else if (user.email) {
-        // Use email username if no name is available
-        setUserName(user.email.split('@')[0]);
-      }
-
       // Get profile picture from Supabase if available
-      const fetchProfilePicture = async () => {
+      const fetchProfileData = async () => {
         try {
           // Import dynamically to avoid server-side issues
-          const { createClient } = await import('@/supabase/supabase');
+          const { createClient } = await import("@/supabase/supabase");
           const supabase = createClient();
-          
+
           // Fetch user profile data that might contain profile picture URL
           const { data, error } = await supabase
-            .from('profiles')
-            .select('profile_picture_url')
-            .eq('id', user.id)
+            .from("profiles")
+            .select("first_name, last_name, profile_picture_url")
+            .eq("id", user.id)
             .maybeSingle();
-            
-          if (data?.profile_picture_url) {
-            setProfilePicture(data.profile_picture_url);
+
+          if (data) {
+            if (data.first_name && data.last_name) {
+              setUserName(`${data.first_name} ${data.last_name}`);
+            } else if (data.first_name) {
+              setUserName(data.first_name);
+            } else if (user.email) {
+              setUserName(user.email.split("@")[0]);
+            }
+
+            if (data?.profile_picture_url) {
+              setProfilePicture(data.profile_picture_url);
+            }
+          } else {
+            const firstName = user.user_metadata?.first_name;
+            const lastName = user.user_metadata?.last_name;
+            if (firstName && lastName) {
+              setUserName(`${firstName} ${lastName}`);
+            } else if (user.email) {
+              setUserName(user.email.split("@")[0]);
+            }
           }
         } catch (error) {
-          console.error('Error fetching profile picture:', error);
+          console.error('Error fetching profile data:', error);
+          
+          const firstName = user.user_metadata?.first_name;
+          const lastName = user.user_metadata?.last_name;
+          if (firstName && lastName) {
+            setUserName(`${firstName} ${lastName}`);
+          } else if (user.email) {
+            setUserName(user.email.split('@')[0]);
+          }
         }
       };
-      
-      fetchProfilePicture();
+
+      fetchProfileData();
     }
   }, [user]);
 
   // Get user initials for avatar fallback
   const getUserInitials = () => {
-    if (!userName) return 'U';
-    const parts = userName.split(' ');
+    if (!userName) return "U";
+    const parts = userName.split(" ");
     if (parts.length >= 2) {
       return `${parts[0].charAt(0)}${parts[1].charAt(0)}`.toUpperCase();
     }
@@ -180,7 +202,7 @@ function SidebarContent({ className, closeMobileMenu }: { className?: string; cl
           />
         </div>
       </div>
-      
+
       <nav className="flex-1 px-2 py-4 space-y-1">
         {sidebarLinks.map((link) => {
           const isActive = pathname.includes(link.href);
@@ -197,7 +219,9 @@ function SidebarContent({ className, closeMobileMenu }: { className?: string; cl
             >
               <link.icon
                 className={`mr-3 h-5 w-5 ${
-                  isActive ? "text-primary" : "text-zinc-500 group-hover:text-zinc-400"
+                  isActive
+                    ? "text-primary"
+                    : "text-zinc-500 group-hover:text-zinc-400"
                 }`}
               />
               {link.name}
@@ -205,22 +229,24 @@ function SidebarContent({ className, closeMobileMenu }: { className?: string; cl
           );
         })}
       </nav>
-      
+
       <div className="p-3 m-2 mt-auto rounded-md bg-zinc-800/30 flex items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 bg-zinc-800/30 px-3 py-2 rounded-full cursor-pointer hover:bg-zinc-800/50 transition-colors w-full">
               <div className="flex-shrink-0 h-8 w-8 bg-zinc-700 rounded-full overflow-hidden flex items-center justify-center">
                 {profilePicture ? (
-                  <Image 
-                    src={profilePicture} 
+                  <Image
+                    src={profilePicture}
                     alt={userName}
-                    width={32} 
+                    width={32}
                     height={32}
-                    className="h-full w-full object-cover"
+                    className="w-full h-full object-cover rounded-full"
                   />
                 ) : (
-                  <span className="text-zinc-300 text-sm">{getUserInitials()}</span>
+                  <span className="text-zinc-300 text-sm">
+                    {getUserInitials()}
+                  </span>
                 )}
               </div>
               <span className="text-sm text-zinc-200 truncate">{userName}</span>
@@ -248,7 +274,7 @@ function SidebarContent({ className, closeMobileMenu }: { className?: string; cl
               <span>Help & Support</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="bg-zinc-700" />
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="hover:bg-zinc-700 text-red-400 hover:text-red-300 cursor-pointer"
               onClick={handleLogout}
             >
@@ -264,7 +290,7 @@ function SidebarContent({ className, closeMobileMenu }: { className?: string; cl
 
 export function Sidebar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
   };
@@ -275,16 +301,19 @@ export function Sidebar() {
       <div className="lg:hidden fixed top-4 left-4 z-50">
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="icon" 
+            <Button
+              variant="outline"
+              size="icon"
               className="bg-zinc-800/90 border-zinc-700 hover:bg-zinc-700 hover:border-zinc-600"
             >
               <Menu className="h-5 w-5 text-zinc-200" />
               <span className="sr-only">Toggle menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="p-0 border-r border-zinc-800 bg-[#121218] w-[280px]">
+          <SheetContent
+            side="left"
+            className="p-0 border-r border-zinc-800 bg-[#121218] w-[280px]"
+          >
             <SidebarContent closeMobileMenu={closeMobileMenu} />
           </SheetContent>
         </Sheet>

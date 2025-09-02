@@ -7,7 +7,9 @@ import { InvestorFormData } from "@/types/investor-form";
 import InvestorFormFields from "../../investor-profile/Investor-form-fields";
 
 interface AddInvestorFormProps {
-  onSubmit: (data: InvestorFormData) => Promise<{ success: boolean; error?: string }>;
+  onSubmit: (
+    data: InvestorFormData
+  ) => Promise<{ success: boolean; error?: string }>;
   onCancel: () => void;
   initialData?: Partial<InvestorFormData>;
   isSubmitting?: boolean;
@@ -47,16 +49,22 @@ export function AddInvestorForm({
 
   // Calculate share price - avoid storing in state to prevent loops
   const calculatedSharePrice = useMemo(() => {
-    if (formData.isInvestment && formData.investmentType === 'equity') {
+    if (formData.isInvestment && formData.investmentType === "equity") {
       const amount = parseFloat(formData.amount) || 0;
       const numShares = parseFloat(formData.numShares) || 0;
-      
+
       if (amount > 0 && numShares > 0) {
         return (amount / numShares).toFixed(2);
       }
     }
     return formData.sharePrice || "0.00";
-  }, [formData.amount, formData.numShares, formData.isInvestment, formData.investmentType, formData.sharePrice]);
+  }, [
+    formData.amount,
+    formData.numShares,
+    formData.isInvestment,
+    formData.investmentType,
+    formData.sharePrice,
+  ]);
 
   // Reset form when initialData changes - FIXED
   useEffect(() => {
@@ -87,33 +95,33 @@ export function AddInvestorForm({
 
   // Handle field changes
   const handleFieldChange = (field: string, value: string) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
 
     // Mark field as touched
     if (!touched[field]) {
-      setTouched(prev => ({
+      setTouched((prev) => ({
         ...prev,
-        [field]: true
+        [field]: true,
       }));
     }
 
     // Clear error when field is changed
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: null
+        [field]: null,
       }));
     }
   };
 
   // Handle toggle for investment switch
   const handleToggleInvestment = (checked: boolean) => {
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      isInvestment: checked
+      isInvestment: checked,
     }));
   };
 
@@ -135,7 +143,7 @@ export function AddInvestorForm({
     if (!formData.lastName) {
       newErrors.lastName = "Last name is required";
     }
-    
+
     if (!formData.companyName) {
       newErrors.companyName = "Company name is required";
     }
@@ -144,22 +152,22 @@ export function AddInvestorForm({
     if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Invalid email address";
     }
-    
+
     // Amount validation for investment
     if (formData.isInvestment) {
       if (!formData.amount || parseFloat(formData.amount) <= 0) {
         newErrors.amount = "Investment amount is required";
       }
-      
-      if (formData.investmentType === 'debt' && !formData.interestRate) {
+
+      if (formData.investmentType === "debt" && !formData.interestRate) {
         newErrors.interestRate = "Interest rate is required";
       }
-      
-      if (formData.investmentType === 'equity') {
+
+      if (formData.investmentType === "equity") {
         if (!formData.valuation || parseFloat(formData.valuation) <= 0) {
           newErrors.valuation = "Valuation is required";
         }
-        
+
         if (!formData.numShares || parseFloat(formData.numShares) <= 0) {
           newErrors.numShares = "Number of shares is required";
         }
@@ -175,31 +183,35 @@ export function AddInvestorForm({
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (isSubmittingState) return;
     if (!validateForm()) return;
-    
+
     setIsSubmitting(true);
     setSubmissionError(null);
-    
+
     try {
       const result = await onSubmit({
         ...formData,
+        company: formData.companyName,
+        type: formData.investorType,
         sharePrice: calculatedSharePrice,
-        ...(initialData.id ? { id: initialData.id } : {})
+        ...(initialData.id ? { id: initialData.id } : {}),
       });
-      
+
       if (!result.success) {
         // Check if the error is about duplicate email
         if (result.error && result.error.includes("email already exists")) {
-          setErrors(prev => ({
+          setErrors((prev) => ({
             ...prev,
-            email: "This email is already associated with another investor"
+            email: "This email is already associated with another investor",
           }));
           setIsSubmitting(false);
-          
+
           // Scroll to the email field
-          document.getElementById('email')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          document
+            .getElementById("email")
+            ?.scrollIntoView({ behavior: "smooth", block: "center" });
         } else {
           // Handle other errors
           setSubmissionError(result.error || "Failed to save investor data");
@@ -207,7 +219,7 @@ export function AddInvestorForm({
         }
         return;
       }
-      
+
       // Success handling
     } catch (error) {
       console.error("Error submitting form:", error);
@@ -221,7 +233,7 @@ export function AddInvestorForm({
       <InvestorFormFields
         formData={{
           ...formData,
-          sharePrice: calculatedSharePrice
+          sharePrice: calculatedSharePrice,
         }}
         formErrors={errors}
         touchedFields={touched}
