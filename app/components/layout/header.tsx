@@ -236,7 +236,11 @@ export function Header() {
           <Button className="bg-primary hover:bg-primary/90 text-white">
             Upgrade
           </Button>
-          
+          <Link href={`/company/${activeCompanyId}`}>
+          <Button className="bg-primary hover:bg-primary/90 text-white">
+           Public View
+          </Button>
+          </Link>
           {/* User profile dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

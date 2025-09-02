@@ -1,45 +1,36 @@
+// app/api/admin/investors/manual/route.ts
 import { type NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Server-side admin client with service key
 function createAdminClient() {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
     return createClient(supabaseUrl, supabaseServiceKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-        },
+        auth: { autoRefreshToken: false, persistSession: false },
     });
-}
-
-interface AddManualInvestorRequest {
-    firstName: string;
-    lastName: string;
-    email: string;
-    investsViaCompany: boolean;
-    investorType?: string;
-    companyName?: string;
-    country: string;
-    city: string;
-    title?: string;
 }
 
 export async function POST(request: NextRequest) {
     const supabase = createAdminClient();
 
     try {
-        const body: AddManualInvestorRequest = await request.json();
-        const { firstName, lastName, email, investsViaCompany, investorType, companyName, country, city, title } = body;
+        const body = await request.json();
+        const { firstName, lastName, email, investsViaCompany, investorType, companyName, country, city, title } =
+            body as {
+                firstName: string;
+                lastName: string;
+                email: string;
+                investsViaCompany: boolean;
+                investorType?: string;
+                companyName?: string;
+                country: string;
+                city: string;
+                title?: string;
+            };
 
-        console.log("📝 Creating manual investor:", { email, investsViaCompany, investorType, companyName });
-
-        // Validate required fields
         if (!firstName || !lastName || !email || !country || !city) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
-
         if (investsViaCompany && (!investorType || !companyName)) {
             return NextResponse.json(
                 { error: "Investor type and company name required for company investors" },
@@ -47,109 +38,92 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Check if email already exists in auth
-        console.log("🔍 Checking if user exists in auth...");
-        const { data: existingUsers } = await supabase.auth.admin.listUsers();
-        const existingUser = existingUsers.users.find((user) => user.email === email.toLowerCase());
+        const normalizedEmail = email.toLowerCase();
 
-        if (existingUser) {
+        // --- existence checks (use maybeSingle to avoid throwing on 0 rows)
+        const { data: usersList, error: listErr } = await supabase.auth.admin.listUsers();
+        if (listErr) {
+            return NextResponse.json({ error: `Auth user list failed: ${listErr.message}` }, { status: 500 });
+        }
+        if (usersList.users.find((u) => u.email?.toLowerCase() === normalizedEmail)) {
             return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 });
         }
 
-        // Check if email already exists in investor_profiles
-        console.log("🔍 Checking if investor profile exists...");
         const { data: existingProfile } = await supabase
             .from("investor_profiles")
             .select("id")
-            .eq("email", email.toLowerCase())
-            .single();
-
-        if (existingProfile) {
+            .eq("email", normalizedEmail)
+            .maybeSingle();
+        if (existingProfile?.id) {
             return NextResponse.json({ error: "An investor profile with this email already exists" }, { status: 409 });
         }
 
-        // Check if email already exists in investor_contacts
-        console.log("🔍 Checking if investor contact exists...");
         const { data: existingContact } = await supabase
             .from("investor_contacts")
             .select("id")
-            .eq("email", email.toLowerCase())
-            .single();
-
-        if (existingContact) {
+            .eq("email", normalizedEmail)
+            .maybeSingle();
+        if (existingContact?.id) {
             return NextResponse.json({ error: "An investor contact with this email already exists" }, { status: 409 });
         }
 
-        // Variables to track created resources for cleanup
+        // --- create flow
         let createdUserId: string | null = null;
         let createdProfileId: string | null = null;
         let createdFirmId: string | null = null;
         let createdContactId: string | null = null;
 
         try {
-            // 1. Create auth user
-            console.log("👤 Creating user account...");
-            const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-                email: email.toLowerCase(),
-                password: Math.random().toString(36).slice(-8) + "Aa1!", // Temporary password
+            // 1) auth user
+            const { data: authRes, error: authError } = await supabase.auth.admin.createUser({
+                email: normalizedEmail,
+                password: Math.random().toString(36).slice(-8) + "Aa1!",
                 email_confirm: true,
-                user_metadata: {
-                    first_name: firstName,
-                    last_name: lastName,
-                    role: "investor",
-                },
+                user_metadata: { first_name: firstName, last_name: lastName, role: "investor" },
             });
-
-            if (authError) {
-                console.error("❌ Auth user creation failed:", authError);
-                throw new Error(`Failed to create user account: ${authError.message}`);
+            if (authError || !authRes?.user) {
+                throw new Error(`Failed to create user account: ${authError?.message}`);
             }
+            createdUserId = authRes.user.id;
 
-            createdUserId = authUser.user.id;
-            console.log("✅ User created:", createdUserId);
-
-            // 2. Create investor profile
-            console.log("📋 Creating investor profile...");
+            // 2) investor profile — DO NOT set `id` explicitly
             const { data: profile, error: profileError } = await supabase
                 .from("investor_profiles")
                 .insert({
-                    id: createdUserId,
+                    // id: createdUserId, <-- remove this
+                    auth_user_id: createdUserId, // <-- keep linkage here (make sure column exists)
                     first_name: firstName,
                     last_name: lastName,
-                    email: email.toLowerCase(),
+                    email: normalizedEmail,
                     investor_category: investsViaCompany ? investorType : "Individual",
                     investment_preference: investsViaCompany ? "company" : "individual",
                     location: `${city}, ${country}`,
                     source: "admin",
                 })
-                .select()
+                .select("id")
                 .single();
 
-            if (profileError) {
-                console.error("❌ Profile creation failed:", profileError);
-                throw new Error(`Failed to create investor profile: ${profileError.message}`);
+            if (profileError || !profile?.id) {
+                // cleanup auth user if profile fails
+                if (createdUserId) await supabase.auth.admin.deleteUser(createdUserId).catch(() => {});
+                throw new Error(`Failed to create investor profile: ${profileError?.message}`);
             }
-
             createdProfileId = profile.id;
-            console.log("✅ Investor profile created:", createdProfileId);
 
-            // 3. Handle firm and contact creation logic
-            if (companyName && companyName.trim()) {
-                console.log("🏢 Processing company association...");
-
-                // Check if firm already exists
+            // 3) firm (if provided) + contact
+            if (companyName?.trim()) {
+                // find firm
+                let firmId: string | null = null;
                 const { data: existingFirm } = await supabase
                     .from("investor_firms")
                     .select("id")
                     .eq("firm_name", companyName.trim())
-                    .single();
+                    .maybeSingle();
 
-                if (existingFirm) {
-                    createdFirmId = existingFirm.id;
-                    console.log("✅ Using existing firm:", createdFirmId);
+                if (existingFirm?.id) {
+                    firmId = existingFirm.id;
                 } else {
-                    // Create new firm
-                    const { data: newFirm, error: firmError } = await supabase
+                    const { data: newFirm, error: firmErr } = await supabase
                         .from("investor_firms")
                         .insert({
                             firm_name: companyName.trim(),
@@ -157,43 +131,41 @@ export async function POST(request: NextRequest) {
                             hq_location: `${city}, ${country}`,
                             source: "deedee",
                         })
-                        .select()
+                        .select("id")
                         .single();
-
-                    if (firmError) {
-                        console.error("❌ Firm creation failed:", firmError);
-                        throw new Error(`Failed to create investor firm: ${firmError.message}`);
+                    if (firmErr || !newFirm?.id) {
+                        // cleanup profile + auth
+                        await supabase.from("investor_profiles").delete().eq("id", createdProfileId!);
+                        if (createdUserId) await supabase.auth.admin.deleteUser(createdUserId).catch(() => {});
+                        throw new Error(`Failed to create investor firm: ${firmErr?.message}`);
                     }
-
-                    createdFirmId = newFirm.id;
-                    console.log("✅ New firm created:", createdFirmId);
+                    firmId = newFirm.id;
                 }
+                createdFirmId = firmId;
 
-                // Create investor contact
-                console.log("📞 Creating investor contact...");
-                const { data: contact, error: contactError } = await supabase
+                // contact — use the PROFILE ID we just captured
+                const { data: contact, error: contactErr } = await supabase
                     .from("investor_contacts")
                     .insert({
-                        firm_id: createdFirmId,
-                        investor_profile_id: createdProfileId,
+                        firm_id: firmId,
+                        investor_profile_id: createdProfileId, // <-- critical
                         first_name: firstName,
                         last_name: lastName,
-                        email: email.toLowerCase(),
-                        title: title || null,
+                        email: normalizedEmail,
+                        title: title ?? null,
                     })
-                    .select()
+                    .select("id")
                     .single();
 
-                if (contactError) {
-                    console.error("❌ Contact creation failed:", contactError);
-                    throw new Error(`Failed to create investor contact: ${contactError.message}`);
+                if (contactErr || !contact?.id) {
+                    // cleanup new firm if we created one, then profile + auth
+                    if (createdFirmId) await supabase.from("investor_firms").delete().eq("id", createdFirmId);
+                    await supabase.from("investor_profiles").delete().eq("id", createdProfileId!);
+                    if (createdUserId) await supabase.auth.admin.deleteUser(createdUserId).catch(() => {});
+                    throw new Error(`Failed to create investor contact: ${contactErr?.message}`);
                 }
-
                 createdContactId = contact.id;
-                console.log("✅ Investor contact created:", createdContactId);
             }
-
-            console.log("🎉 Manual investor creation completed successfully!");
 
             return NextResponse.json({
                 success: true,
@@ -205,62 +177,18 @@ export async function POST(request: NextRequest) {
                     contactId: createdContactId,
                     investorType: investsViaCompany ? investorType : "Individual",
                     hasCompany: !!createdFirmId,
-                    logic: investsViaCompany
-                        ? "Company investor - created firm and contact"
-                        : companyName
-                        ? "Individual investor with company - created firm and contact"
-                        : "Individual investor only - no firm created",
                 },
             });
-        } catch (error: any) {
-            console.log("❌ Transaction failed, cleaning up...");
-
-            // Cleanup in reverse order
-            if (createdContactId) {
-                try {
-                    await supabase.from("investor_contacts").delete().eq("id", createdContactId);
-                    console.log("🧹 Cleaned up investor contact");
-                } catch (cleanupError) {
-                    console.log("⚠️ Failed to cleanup investor contact:", cleanupError);
-                }
-            }
-
-            if (createdFirmId) {
-                try {
-                    await supabase.from("investor_firms").delete().eq("id", createdFirmId);
-                    console.log("🧹 Cleaned up investor firm");
-                } catch (cleanupError) {
-                    console.log("⚠️ Failed to cleanup investor firm:", cleanupError);
-                }
-            }
-
-            if (createdProfileId) {
-                try {
-                    await supabase.from("investor_profiles").delete().eq("id", createdProfileId);
-                    console.log("🧹 Cleaned up investor profile");
-                } catch (cleanupError) {
-                    console.log("⚠️ Failed to cleanup investor profile:", cleanupError);
-                }
-            }
-
-            if (createdUserId) {
-                try {
-                    await supabase.auth.admin.deleteUser(createdUserId);
-                    console.log("🧹 Cleaned up user account");
-                } catch (cleanupError) {
-                    console.log("⚠️ Failed to cleanup user account:", cleanupError);
-                }
-            }
-
-            throw error;
+        } catch (innerErr) {
+            // cleanup (reverse order)
+            if (createdContactId) await supabase.from("investor_contacts").delete().eq("id", createdContactId);
+            if (createdFirmId) await supabase.from("investor_firms").delete().eq("id", createdFirmId);
+            if (createdProfileId) await supabase.from("investor_profiles").delete().eq("id", createdProfileId);
+            if (createdUserId) await supabase.auth.admin.deleteUser(createdUserId).catch(() => {});
+            throw innerErr;
         }
     } catch (error: any) {
         console.error("❌ Manual Investor API Error:", error);
-        return NextResponse.json(
-            {
-                error: error instanceof Error ? error.message : "Failed to add investor",
-            },
-            { status: 500 }
-        );
+        return NextResponse.json({ error: error?.message ?? "Failed to add investor" }, { status: 500 });
     }
 }
