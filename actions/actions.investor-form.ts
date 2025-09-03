@@ -1,7 +1,19 @@
 "use server"
 
 import { createClient } from '@/supabase/server';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 import { InvestorFormData, InvestorFormResponse } from '@/types/investor-form';
+
+
+
+function createAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createSupabaseClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
 
 /**
  * Helper function to convert string number to database numeric or null
@@ -66,6 +78,14 @@ export async function submitInvestorByCompanyName(
       return { success: false, error: "No company provided and unable to create one" };
     }
 
+
+    let createdAuthUserId: string | null = null;
+    let createdFirmId: string | null = null;
+    let createdProfileId: string | null = null;
+
+    try{
+
+
     // Format the data to match the database schema
     const investorData = {
       company_id: companyId,
@@ -121,11 +141,123 @@ export async function submitInvestorByCompanyName(
       result = data;
     }
 
+
+     if (!formData.id && formData.company && formData.email) {
+        
+        const firmLocation = formData.country && formData.city 
+          ? `${formData.city}, ${formData.country}` 
+          : formData.country || null;
+
+    
+        const { data: existingFirm } = await supabase
+          .from('investor_firms')
+          .select('id')
+          .eq('firm_name', formData.company)
+          .maybeSingle();
+
+        if (existingFirm?.id) {
+          createdFirmId = existingFirm.id;
+        } else {
+          
+          const { data: newFirm, error: firmError } = await supabase
+            .from('investor_firms')
+            .insert({
+              firm_name: formData.company,
+              investor_type: formData.type || 'Unknown',
+              hq_location: firmLocation,
+              source: 'deedee',
+            })
+            .select('id')
+            .single();
+
+          if (firmError) {
+            throw new Error(`Failed to create investor firm: ${firmError.message}`);
+          }
+          createdFirmId = newFirm.id;
+        }
+
+        const investmentPreference = (formData.type === 'individual' || formData.type === 'angel investor') 
+          ? 'individual' 
+          : 'business';
+
+        const profileLocation = formData.country && formData.city 
+          ? `${formData.city}, ${formData.country}` 
+          : formData.country || null;
+
+        const { data: existingProfile } = await supabase
+          .from('investor_profiles')
+          .select('id')
+          .eq('email', formData.email)
+          .maybeSingle();
+
+        if (!existingProfile?.id) {
+
+          const adminSupabase = createAdminClient();
+          const normalizedEmail = formData.email.toLowerCase();
+          
+          const { data: authRes, error: authError } = await adminSupabase.auth.admin.createUser({
+            email: normalizedEmail,
+            password: Math.random().toString(36).slice(-8) + "Aa1!",
+            email_confirm: true,
+            user_metadata: { 
+              first_name: formData.firstName, 
+              last_name: formData.lastName, 
+              role: "investor" 
+            },
+          });
+          
+          if (authError || !authRes?.user) {
+            throw new Error(`Failed to create user account: ${authError?.message}`);
+          }
+          createdAuthUserId = authRes.user.id;
+
+          const { data: newProfile, error: profileError } = await supabase
+            .from('investor_profiles')
+            .insert({
+              id: createdAuthUserId,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              email: formData.email,
+              location: profileLocation,
+              source: 'admin',
+              investment_preference: investmentPreference,
+            })
+            .select('id')
+            .single();
+
+          if (profileError) {
+            throw new Error(`Failed to create investor profile: ${profileError.message}`);
+          }
+          createdProfileId = newProfile.id;
+        } else {
+          createdProfileId = existingProfile.id;
+        }
+      }
+
     return { 
       success: true, 
       error: null, 
       data: result 
     };
+
+     } catch (innerError: any) {
+      
+      if (!formData.id) {
+        if (createdProfileId) {
+          await supabase.from('investor_profiles').delete().eq('id', createdProfileId);
+        }
+        if (createdFirmId) {
+          await supabase.from('investor_firms').delete().eq('id', createdFirmId);
+        }
+        if (createdAuthUserId) {
+          const adminSupabase = createAdminClient();
+          await adminSupabase.auth.admin.deleteUser(createdAuthUserId).catch(() => {});
+        }
+      }
+      throw innerError;
+    
+    }
+    
   } catch (error: any) {
     console.error("Error in submitInvestorByCompanyName:", error);
     return {

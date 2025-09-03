@@ -122,8 +122,9 @@ const DroppableStages = ({
         <Droppable 
           key={stage.id} 
           droppableId={stage.id}
-          // Remove any potentially problematic props
-          // isDropDisabled={undefined} <-- This was likely causing the issue
+          isDropDisabled={false}
+          isCombineEnabled={false}
+          ignoreContainerClipping={false}
         >
           {(provided) => (
             <div

@@ -158,7 +158,7 @@ export default function ProfilePage(): JSX.Element {
         { name: "traction", error: tractionError },
         { name: "stack", error: stackError }
       ].forEach(item => {
-        if (item.error) {
+        if (item.error instanceof Error || (typeof item.error=='string' && item.error)) {
           console.error(`Error fetching ${item.name} data:`, item.error);
         }
       });
