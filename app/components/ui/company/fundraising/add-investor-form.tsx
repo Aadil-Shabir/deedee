@@ -31,10 +31,10 @@ export function AddInvestorForm({
   const [formData, setFormData] = useState<InvestorFormData>({
     firstName: "",
     lastName: "",
-    companyName: "",
+    company: "",
     companyId: "",
     email: "",
-    investorType: "",
+    type: "",
     stage: "interested",
     country: "",
     city: "",
@@ -45,13 +45,16 @@ export function AddInvestorForm({
     valuation: "",
     numShares: "",
     sharePrice: "",
+    previousRaised: "",
+    paidPercentage: 0,
+    investorTypes: [],
   });
 
   // Calculate share price - avoid storing in state to prevent loops
   const calculatedSharePrice = useMemo(() => {
     if (formData.isInvestment && formData.investmentType === "equity") {
-      const amount = parseFloat(formData.amount) || 0;
-      const numShares = parseFloat(formData.numShares) || 0;
+      const amount = parseFloat(formData.amount || "0") || 0;
+      const numShares = parseFloat(formData.numShares || "0") || 0;
 
       if (amount > 0 && numShares > 0) {
         return (amount / numShares).toFixed(2);
@@ -74,9 +77,9 @@ export function AddInvestorForm({
         firstName: initialData.firstName || "",
         companyId: initialData.companyId || "",
         lastName: initialData.lastName || "",
-        companyName: initialData.companyName || "",
+        company: initialData.company || "",
         email: initialData.email || "",
-        investorType: initialData.investorType || "",
+        type: initialData.type || "",
         stage: initialData.stage || "interested",
         country: initialData.country || "",
         city: initialData.city || "",
@@ -87,6 +90,9 @@ export function AddInvestorForm({
         valuation: initialData.valuation || "",
         numShares: initialData.numShares || "",
         sharePrice: initialData.sharePrice || "",
+        previousRaised: initialData.previousRaised || "",
+        paidPercentage: initialData.paidPercentage || 0,
+        investorTypes: initialData.investorTypes || [],
       });
       setErrors({});
       setTouched({});
@@ -117,6 +123,27 @@ export function AddInvestorForm({
     }
   };
 
+  const handlePreviousRaisedChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      previousRaised: value,
+    }));
+  };
+
+  const handlePaidPercentageChange = (value: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      paidPercentage: value,
+    }));
+  };
+
+  const handleInvestorTypesChange = (types: string[]) => {
+    setFormData((prev) => ({
+      ...prev,
+      investorTypes: types,
+    }));
+  };
+
   // Handle toggle for investment switch
   const handleToggleInvestment = (checked: boolean) => {
     setFormData((prev) => ({
@@ -144,8 +171,8 @@ export function AddInvestorForm({
       newErrors.lastName = "Last name is required";
     }
 
-    if (!formData.companyName) {
-      newErrors.companyName = "Company name is required";
+    if (!formData.company) {
+      newErrors.company = "Company name is required";
     }
 
     // Email validation
@@ -193,8 +220,8 @@ export function AddInvestorForm({
     try {
       const result = await onSubmit({
         ...formData,
-        company: formData.companyName,
-        type: formData.investorType,
+        company: formData.company,
+        type: formData.type,
         sharePrice: calculatedSharePrice,
         ...(initialData.id ? { id: initialData.id } : {}),
       });
@@ -239,6 +266,11 @@ export function AddInvestorForm({
         touchedFields={touched}
         onFieldChange={handleFieldChange}
         onToggleInvestment={handleToggleInvestment}
+        onPastFundraisingChange={{
+          onPreviousRaisedChange: handlePreviousRaisedChange,
+          onPaidPercentageChange: handlePaidPercentageChange,
+          onInvestorTypesChange: handleInvestorTypesChange,
+        }}
         isReadOnly={isSubmittingState}
       />
 

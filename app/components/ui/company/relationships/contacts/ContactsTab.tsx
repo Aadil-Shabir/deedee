@@ -128,12 +128,12 @@ export function ContactsTab({
 
   return (
     <div className="space-y-4">
-      <ContactsHeader
+      {/* <ContactsHeader
         totals={totals}
         searchTerm={searchTerm}
         onSearchChange={onSearchChange}
         onAddInvestor={onAddInvestor} // Pass through the prop
-      />
+      /> */}
 
       <ContactsTable
         contacts={filteredContacts}

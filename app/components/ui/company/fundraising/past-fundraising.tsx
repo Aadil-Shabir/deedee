@@ -2,22 +2,18 @@
 
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { FormField, CurrencyInput } from "./form-field";
-import { PaymentProgress } from "./payment-progress";
-import { InvestorTypes } from "./investor-types";
 import { InvestorList } from "./investor-list";
 import { Progress } from "@/components/ui/progress";
 import { PieChart } from "lucide-react";
 import { useCompanyContext } from "@/context/company-context";
 import { useUser } from "@/hooks/use-user";
 import { 
-  getPastFundraisingData, 
-  savePastFundraisingData, 
   getInvestors, 
-  addInvestor, 
   deleteInvestor 
 } from "@/actions/actions.fundraising";
+import { submitInvestorByCompanyName } from "@/actions/actions.investor-form";
 import { useToast } from "@/components/ui/toast-provider";
+import { FormField } from "./form-field";
 
 interface PastFundraisingProps {
   onBack?: () => void;
@@ -26,9 +22,6 @@ interface PastFundraisingProps {
 
 export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {}) {
   // Form state
-  const [previousRaised, setPreviousRaised] = useState("");
-  const [paidPercentage, setPaidPercentage] = useState(0);
-  const [selectedInvestorTypes, setSelectedInvestorTypes] = useState<string[]>(["angel"]);
   const [investors, setInvestors] = useState<any[]>([]);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   
@@ -41,25 +34,22 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
   const { user } = useUser();
   const { toast } = useToast();
 
-  // Track completion status for each field
-  const fields = [
-    { id: "previousRaised", isCompleted: !!previousRaised },
-    { id: "investorTypes", isCompleted: selectedInvestorTypes.length > 0 },
-    // Consider investors as a bonus field
-    { id: "hasInvestors", isCompleted: investors.length > 0 }
-  ];
-  
   // Calculate completion percentage
   useEffect(() => {
+    const fields = [
+      // Consider investors as the main field for this section now
+      { id: "hasInvestors", isCompleted: investors.length > 0 }
+    ];
+    
     const completedFields = fields.filter(field => field.isCompleted).length;
     const totalFields = fields.length;
     const percentage = Math.round((completedFields / totalFields) * 100);
     setCompletionPercentage(percentage);
-  }, [fields, previousRaised, selectedInvestorTypes, investors.length]);
+  }, [investors.length]);
   
   // Load data when component mounts or company changes
   useEffect(() => {
-    const loadPastFundraisingData = async () => {
+    const loadInvestorsData = async () => {
       if (!user?.id || !activeCompanyId) {
         setIsLoading(false);
         return;
@@ -68,15 +58,6 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
       try {
         setIsLoading(true);
         
-        // Load past fundraising data
-        const pastResponse = await getPastFundraisingData(user.id, activeCompanyId);
-        
-        if (pastResponse.success && pastResponse.data) {
-          setPreviousRaised(pastResponse.data.previousRaised);
-          setPaidPercentage(pastResponse.data.paidPercentage);
-          setSelectedInvestorTypes(pastResponse.data.investorTypes);
-        }
-        
         // Load investors
         const investorsResponse = await getInvestors(user.id, activeCompanyId);
         
@@ -84,10 +65,10 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
           setInvestors(investorsResponse.data);
         }
       } catch (err) {
-        console.error("Error loading past fundraising data:", err);
+        console.error("Error loading investors data:", err);
         toast({
           title: "Error",
-          description: "Failed to load past fundraising data",
+          description: "Failed to load investors data",
           variant: "destructive",
         });
       } finally {
@@ -95,16 +76,8 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
       }
     };
     
-    loadPastFundraisingData();
-  }, [ activeCompanyId,user, isSaving]);
-
-  const toggleInvestorType = (type: string) => {
-    if (selectedInvestorTypes.includes(type)) {
-      setSelectedInvestorTypes(selectedInvestorTypes.filter((t) => t !== type));
-    } else {
-      setSelectedInvestorTypes([...selectedInvestorTypes, type]);
-    }
-  };
+    loadInvestorsData();
+  }, [ activeCompanyId,user, isSaving, toast]);
 
   // Add investor handler
   const handleAddInvestor = async (investorData: any) => {
@@ -118,18 +91,7 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
     }
     
     try {
-      const response = await addInvestor(user.id, activeCompanyId, {
-        firstName: investorData.firstName,
-        lastName: investorData.lastName,
-        company: investorData.company,
-        email: investorData.email,
-        type: investorData.type,
-        stage: investorData.stage,
-        country: investorData.country,
-        city: investorData.city,
-        amount: investorData.amount,
-        isInvestment: Boolean(investorData.isInvestment)
-      });
+      const response = await submitInvestorByCompanyName(investorData, user.id);
       
       if (response.success && response.data) {
         // Add the new investor to the state with the returned ID
@@ -148,7 +110,7 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to add investor",
+          description: response.error || "Failed to add investor",
           variant: "destructive",
         });
       }
@@ -161,7 +123,7 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
       });
     }
   };
-  
+
   // Delete investor handler
   const handleDeleteInvestor = async (investorId: string) => {
     if (!user?.id) {
@@ -202,12 +164,12 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
     }
   };
   
-  // Save past fundraising data
+  // Handle save - simplified since past fundraising data is now captured in individual investor forms
   const handleSave = async () => {
     if (!user?.id) {
       toast({
         title: "Authentication Required",
-        description: "Please sign in to save fundraising information",
+        description: "Please sign in to continue",
         variant: "destructive",
       });
       return;
@@ -216,48 +178,22 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
     if (!activeCompanyId) {
       toast({
         title: "No Company Selected",
-        description: "Please select a company to save fundraising information",
+        description: "Please select a company to continue",
         variant: "destructive",
       });
       return;
     }
 
-    setIsSaving(true);
-
-    try {
-      const data = {
-        previousRaised,
-        paidPercentage,
-        investorTypes: selectedInvestorTypes,
-      };
-
-      const response = await savePastFundraisingData(user.id, activeCompanyId, data);
-
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Past fundraising information saved successfully",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to save information",
-          variant: "destructive",
-        });
-      }
-      if (onComplete) {
-        onComplete();
-      }
-    } catch (err) {
-      console.error("Error saving past fundraising data:", err);
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while saving",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSaving(false);
+    // Since we're now capturing past fundraising data in individual investor forms,
+    // this section is considered complete if there are investors
+    toast({
+      title: "Success",
+      description: "Past fundraising section completed",
+      variant: "default",
+    });
+    
+    if (onComplete) {
+      onComplete();
     }
   };
   
@@ -295,38 +231,6 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
           </div>
 
           <section>
-            <FormField
-              id="previous-raised"
-              label="How much equity or debt have you raised prior to this round?"
-              isCompleted={!!previousRaised}
-            >
-              <CurrencyInput
-                id="previous-raised"
-                value={previousRaised}
-                onChange={setPreviousRaised}
-                placeholder="150,000"
-              />
-            </FormField>
-
-            <FormField 
-              id="paid-percentage" 
-              label="How much has been paid off?"
-              isCompleted={true} // Always complete as it has a default value
-            >
-              <PaymentProgress value={paidPercentage} onChange={setPaidPercentage} />
-            </FormField>
-
-            <FormField
-              id="investor-types"
-              label="Who did you raise from? (select multiple if needed.)"
-              isCompleted={selectedInvestorTypes.length > 0}
-            >
-              <InvestorTypes
-                selectedTypes={selectedInvestorTypes}
-                onToggle={toggleInvestorType}
-              />
-            </FormField>
-
             <div className="mt-8">
               <FormField
                 id="investors"

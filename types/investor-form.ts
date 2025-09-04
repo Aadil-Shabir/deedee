@@ -31,6 +31,12 @@ export interface InvestorFormData {
   
   // For internal use
   companyId?: string;          // Used to specify company_id
+
+
+
+   previousRaised?: string;
+   paidPercentage?: number;
+   investorTypes?: string[]
 }
 
 export interface InvestorFormResponse {
