@@ -35,6 +35,8 @@ export function useCompanyQuery(companyId: string) {
     queryFn: () => fetchCompany(companyId),
     enabled: !!companyId,
     retry: 1,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    gcTime: 1000 * 60 * 30, // 30 minutes formerly cacheTime
+    refetchOnWindowFocus: false, 
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,21 +22,17 @@ import {
 import { TeamMemberData } from "../company/team-forms/team-member-form";
 import { TeamMembersList } from "../company/team-forms/team-members-list";
 import { AddTeamMemberDialog } from "../company/team-forms/add-team-member-dialog";
+import {
+  useTeamMembers,
+  useTeamInfo,
+} from "@/hooks/query-hooks/use-team-queries";
 
 interface TeamMember extends TeamMemberData {
   id: string;
 }
 
-
-export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
-  const [teamSize, setTeamSize] = useState("");
-  const [coFounders, setCoFounders] = useState("no");
-  const [diversity, setDiversity] = useState("mixed");
-  const [achievements, setAchievements] = useState<string[]>(["", "", ""]);
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+export function TeamInfo({ onComplete }: { onComplete: () => void }) {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const { user, loading } = useUser();
@@ -45,76 +41,45 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
   // Get the activeCompanyId from the CompanyContext
   const { activeCompanyId } = useCompanyContext();
 
+  const {
+    data: teamMembersData,
+    isLoading: isLoadingMembers,
+    error: teamMembersError,
+    refetch: refetchTeamMembers,
+  } = useTeamMembers(user?.id || "", activeCompanyId || "");
+
+  const {
+    data: teamInfoData,
+    isLoading,
+    error: teamInfoError,
+    refetch: refetchTeamInfo
+  } = useTeamInfo(user?.id || "", activeCompanyId || "");
+
   // Use activeCompanyId from context if available, otherwise fall back to prop
   const companyId = activeCompanyId;
 
   // Log the company ID being used
-  useEffect(() => {
-    console.log("TeamInfo using companyId:", companyId);
-  }, [companyId]);
+  const teamSize =
+    teamInfoData?.success && teamInfoData.data
+      ? teamInfoData.data.teamSize || ""
+      : "";
+  const coFounders =
+    teamInfoData?.success && teamInfoData.data
+      ? teamInfoData.data.hasCoFounders || "no"
+      : "no";
+  const diversity =
+    teamInfoData?.success && teamInfoData.data
+      ? teamInfoData.data.foundersDiversity || "mixed"
+      : "mixed";
+  const achievements =
+    teamInfoData?.success && teamInfoData.data
+      ? teamInfoData.data.achievements || ["", "", ""]
+      : ["", "", ""];
 
-  // Load team info
-  useEffect(() => {
-    async function loadTeamData() {
-      if (!user) return;
-      if (!companyId) {
-        console.warn("No company ID available to load team data");
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        console.log("Loading team data for company:", companyId);
-        const result = await getTeamInfo(user.id, companyId);
-
-        if (result.success && result.data) {
-          const data = result.data;
-
-          setTeamSize(data.teamSize.toString());
-          setCoFounders(data.hasCoFounders);
-          setDiversity(data.foundersDiversity);
-          setAchievements(data.achievements);
-        }
-      } catch (error) {
-        console.error("Error loading team data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    if (!loading) {
-      loadTeamData();
-    }
-  }, [user, loading, companyId]);
-
-  // Load team members separately
-  useEffect(() => {
-    async function loadTeamMembers() {
-      if (!user) return;
-      if (!companyId) {
-        console.warn("No company ID available to load team members");
-        setIsLoadingMembers(false);
-        return;
-      }
-
-      try {
-        console.log("Loading team members for company:", companyId);
-        const result = await getTeamMembers(user.id, companyId);
-
-        if (result.success) {
-          setTeamMembers(result.data);
-        }
-      } catch (error) {
-        console.error("Error loading team members:", error);
-      } finally {
-        setIsLoadingMembers(false);
-      }
-    }
-
-    if (!loading) {
-      loadTeamMembers();
-    }
-  }, [user, loading, companyId]);
+  const teamSizeRef = useRef<HTMLInputElement>(null);
+  const coFoundersRef = useRef<string>(coFounders);
+  const diversityRef = useRef<string>(diversity);
+  const achievementsRef = useRef<string[]>(achievements);
 
   // Handle adding a team member
   const handleTeamMemberAdd = async (data: TeamMemberData) => {
@@ -133,16 +98,10 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
       const result = await addTeamMember(user.id, data, companyId);
 
       if (result.success && result.data) {
-        // Add the new member to the local state
-        const newMember: TeamMember = {
-          ...data,
-          id: result.data.id,
-        };
-
-        setTeamMembers([newMember, ...teamMembers]);
+        refetchTeamMembers();
 
         // Close the dialog
-        setDialogOpen(false);
+        setIsDialogOpen(false);
 
         toast({
           title: "Success",
@@ -182,7 +141,7 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
       const result = await deleteTeamMember(user.id, id, companyId);
 
       if (result.success) {
-        setTeamMembers(teamMembers.filter((member) => member.id !== id));
+        refetchTeamMembers();
 
         toast({
           title: "Success",
@@ -207,9 +166,9 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
   };
 
   const handleAchievementChange = (index: number, value: string) => {
-    const newAchievements = [...achievements];
+    const newAchievements = [...achievementsRef.current];
     newAchievements[index] = value;
-    setAchievements(newAchievements);
+    achievementsRef.current = newAchievements;
   };
 
   // Save team info only (not team members)
@@ -237,18 +196,24 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
     setIsSaving(true);
 
     try {
+      const currentTeamSize = teamSizeRef.current?.value || "";
+      const currentCoFounders = coFoundersRef.current;
+      const currentDiversity = diversityRef.current;
+      const currentAchievements = achievementsRef.current;
+
       const result = await saveTeamInfo(
         user.id,
         {
-          teamSize: parseInt(teamSize) || 0,
-          hasCoFounders: coFounders as "no" | "two" | "more",
-          foundersDiversity: diversity as "women" | "men" | "mixed",
-          achievements,
+          teamSize: parseInt(currentTeamSize) || 0,
+          hasCoFounders: currentCoFounders as "no" | "two" | "more",
+          foundersDiversity: currentDiversity as "women" | "men" | "mixed",
+          achievements: currentAchievements,
         },
         companyId
       );
 
       if (result.success) {
+        refetchTeamInfo();
         toast({
           title: "Success",
           description: "Team information saved successfully",
@@ -283,13 +248,16 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
         <div className="bg-primary/20 p-4 rounded-full">
           <Users className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold text-center text-zinc-200">No Company Selected</h2>
+        <h2 className="text-2xl font-bold text-center text-zinc-200">
+          No Company Selected
+        </h2>
         <p className="text-zinc-400 text-center max-w-md">
-          Please select a company from your company list to manage its team information.
+          Please select a company from your company list to manage its team
+          information.
         </p>
-        <Button 
+        <Button
           className="mt-4 bg-primary hover:bg-primary/90"
-          onClick={() => window.location.href = '/company/profile'}
+          onClick={() => (window.location.href = "/company/profile")}
         >
           Go to Company Selection
         </Button>
@@ -341,8 +309,8 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
               <Input
                 id="teamSize"
                 type="number"
-                value={teamSize}
-                onChange={(e) => setTeamSize(e.target.value)}
+                ref={teamSizeRef}
+                defaultValue={teamSize}
                 className="bg-zinc-800/50 border-zinc-700 max-w-[100px]"
                 required
               />
@@ -352,7 +320,12 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
               <Label className="text-zinc-200">
                 Do you have co-founders? <span className="text-primary">*</span>
               </Label>
-              <RadioGroup value={coFounders} onValueChange={setCoFounders}>
+              <RadioGroup
+                defaultValue={coFounders}
+                onValueChange={(value) => {
+                  coFoundersRef.current = value;
+                }}
+              >
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="no" id="no" />
@@ -382,7 +355,7 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
                 <Label className="text-zinc-200">Leadership Team</Label>
                 <Button
                   type="button"
-                  onClick={() => setDialogOpen(true)}
+                  onClick={() => setIsDialogOpen(true)}
                   className="bg-primary hover:bg-primary/90"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -396,7 +369,7 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
                 </div>
               ) : (
                 <TeamMembersList
-                  members={teamMembers}
+                  members={teamMembersData?.success ? teamMembersData.data : []}
                   onDelete={handleTeamMemberRemove}
                 />
               )}
@@ -406,7 +379,12 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
               <Label className="text-zinc-200">
                 Founders Diversity <span className="text-primary">*</span>
               </Label>
-              <RadioGroup value={diversity} onValueChange={setDiversity}>
+              <RadioGroup
+                defaultValue={diversity}
+                onValueChange={(value) => {
+                  diversityRef.current = value;
+                }}
+              >
                 <div className="flex flex-col space-y-2">
                   <div className="flex items-center space-x-2">
                     <RadioGroupItem value="women" id="women" />
@@ -438,8 +416,10 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
               {achievements.map((achievement, index) => (
                 <Input
                   key={index}
-                  value={achievement}
-                  onChange={(e) => handleAchievementChange(index, e.target.value)}
+                  defaultValue={achievement}
+                  onChange={(e) =>
+                    handleAchievementChange(index, e.target.value)
+                  }
                   placeholder={`Achievement ${index + 1}`}
                   className="bg-zinc-800/50 border-zinc-700"
                   required
@@ -468,8 +448,8 @@ export function TeamInfo({onComplete}: {onComplete: ()=> void}) {
       )}
 
       <AddTeamMemberDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
         onSubmit={handleTeamMemberAdd}
       />
     </form>

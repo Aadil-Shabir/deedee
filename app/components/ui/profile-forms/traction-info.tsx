@@ -15,6 +15,7 @@ import { FormField } from "../company/fundraising/form-field";
 import { AchievementInput } from "../company/traction/achievement-input";
 import { ClientsInput, MetricInput, PercentMetricInput, RevenueInput } from "../company/traction/revenue-input";
 import { RecurringRevenueToggle } from "../company/traction/form-field";
+import { useTractionData } from "@/hooks/query-hooks/use-traction-queries";
 
 export function TractionInfo({onComplete}: {onComplete: ()=> void}) {
   // Form state
@@ -38,7 +39,6 @@ export function TractionInfo({onComplete}: {onComplete: ()=> void}) {
   const [hasRecurringRevenue, setHasRecurringRevenue] = useState(true);
   
   // UI state
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
   // Hooks for context and toast
@@ -46,50 +46,42 @@ export function TractionInfo({onComplete}: {onComplete: ()=> void}) {
   const { activeCompanyId, allUserCompanies } = useCompanyContext();
   const { user } = useUser();
   const { toast } = useToast();
+
+    const { 
+    data: tractionData, 
+    isLoading, 
+    error: tractionError,
+    refetch: refetchTractionData
+  } = useTractionData(activeCompanyId || "");
   
   // Find active company name
   const activeCompany = allUserCompanies?.find(c => c.id === activeCompanyId);
   
   // Load data when component mounts or company changes
   useEffect(() => {
-    const loadTractionData = async () => {
-      if (!user?.id || !activeCompanyId) {
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        
-        const response = await getTractionData(user.id, activeCompanyId);
-        
-        if (response.success && response.data) {
-          // Set state with loaded data
-          setAchievements(response.data.achievements);
-          setRevenue(response.data.revenue);
-          setClients(response.data.clients);
-          setCac(response.data.metrics.cac);
-          setLeadToSalesRatio(response.data.metrics.leadToSalesRatio);
-          setAov(response.data.metrics.aov);
-          setClv(response.data.metrics.clv);
-          setGrossProfit(response.data.metrics.grossProfit);
-          setEbitdaMargin(response.data.metrics.ebitdaMargin);
-          setHasRecurringRevenue(response.data.hasRecurringRevenue);
-        }
-      } catch (err) {
-        console.error("Error loading traction data:", err);
-        toast({
-          title: "Error",
-          description: "Failed to load traction data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadTractionData();
-  }, [user, activeCompanyId, toast]);
+      if (tractionData) {
+              setAchievements(tractionData.achievements || ["", "", ""]);
+      setRevenue(tractionData.revenue || {
+        thisMonth: "",
+        lastMonth: "",
+        priorMonth: "",
+      });
+      setClients(tractionData.clients || {
+        thisMonth: "",
+        lastMonth: "",
+        priorMonth: "",
+      });
+      setCac(tractionData.cac || "");
+      setLeadToSalesRatio(tractionData.lead_to_sales_ratio || "");
+      setAov(tractionData.aov || "");
+      setClv(tractionData.clv || "");
+      setGrossProfit(tractionData.gross_profit || "");
+      setEbitdaMargin(tractionData.ebitda_margin || "");
+      setHasRecurringRevenue(tractionData.has_recurring_revenue ?? true);
+    }
+  }, [tractionData]);
+
+
 
   const handleRevenueChange = (key: string, value: string) => {
     setRevenue({
@@ -156,6 +148,7 @@ export function TractionInfo({onComplete}: {onComplete: ()=> void}) {
       const response = await saveTractionDataAndComputeMetrics(user.id, activeCompanyId, data, true);
       
       if (response.success) {
+                refetchTractionData();
         toast({
           title: "Success",
           description: "Traction data saved and metrics calculated successfully",

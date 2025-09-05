@@ -1,6 +1,6 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import React from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Layers, BarChart, Building } from "lucide-react";
@@ -10,10 +10,15 @@ import { Layers, BarChart, Building } from "lucide-react";
 import { useCompanyContext } from "@/context/company-context";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/hooks/use-toast";
-import { deleteTechStackFile, getTechStackData, saveVideoUrl, uploadTechStackFile } from "@/actions/actions.stack";
+import {
+  deleteTechStackFile,
+  saveVideoUrl,
+  uploadTechStackFile,
+} from "@/actions/actions.stack";
 import { FileUpload } from "../company/stack/file-upload";
 import { MediaUpload } from "../company/stack/media-upload";
 import { VideoLinkInput } from "../company/stack/video-link-input";
+import { useStackData } from "@/hooks/query-hooks/use-stack-queries";
 
 interface TechStackFile {
   id: string;
@@ -28,13 +33,12 @@ interface TechStackFile {
 
 interface StackInfoProps {
   onTabChange?: (tabId: string) => void;
-  onComplete: ()=> void; 
+  onComplete: () => void;
 }
 
 export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [files, setFiles] = useState<TechStackFile[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   const router = useRouter();
@@ -42,44 +46,35 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
   const { user } = useUser();
   const { toast } = useToast();
 
+  const {
+    data: stackData,
+    isLoading,
+    error,
+    refetch: refetchStackData,
+  } = useStackData(user?.id || "", activeCompanyId || "");
+
   const activeCompany = allUserCompanies?.find((c) => c.id === activeCompanyId);
+
+  React.useEffect(() => {
+    if (stackData?.success && stackData.data) {
+      setVideoUrl(stackData.data.videoUrl);
+      setFiles(stackData.data.files || []);
+    }
+  }, [stackData]);
+
+  if (error) {
+    toast({
+      title: "Error",
+      description: "Failed to load tech stack data",
+      variant: "destructive",
+    });
+  }
 
   const pitchDeckFiles = files.filter((file) => file.category === "pitch_deck");
   const financialFiles = files.filter((file) => file.category === "financials");
   const mediaFiles = files.filter((file) =>
     ["image", "video"].includes(file.category)
   );
-
-  useEffect(() => {
-    const loadTechStackData = async () => {
-      if (!user?.id || !activeCompanyId) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-
-        const response = await getTechStackData(user.id, activeCompanyId);
-
-        if (response.success && response.data) {
-          setVideoUrl(response.data.videoUrl);
-          setFiles(response.data.files || []);
-        }
-      } catch (err) {
-        console.error("Error loading tech stack data:", err);
-        toast({
-          title: "Error",
-          description: "Failed to load tech stack data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadTechStackData();
-  }, [user, activeCompanyId, toast]);
 
   const handleSaveVideoLink = async (url: string) => {
     if (!user?.id || !activeCompanyId) {
@@ -97,7 +92,7 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
       const response = await saveVideoUrl(user.id, activeCompanyId, url);
 
       if (response.success) {
-        setVideoUrl(url);
+        refetchStackData();
         toast({
           title: "Success",
           description: "Video link saved successfully",
@@ -134,7 +129,7 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
 
     try {
       setIsSaving(true);
-      
+
       // Show initial notification when upload starts
       const initialToastId = toast({
         title: "Upload Started",
@@ -149,15 +144,19 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
         if (fileSizeInMB > 8) {
           toast({
             title: "File Too Large",
-            description: `The file ${file.name} is ${fileSizeInMB.toFixed(1)}MB. Please upload files smaller than 8MB.`,
+            description: `The file ${file.name} is ${fileSizeInMB.toFixed(
+              1
+            )}MB. Please upload files smaller than 8MB.`,
             variant: "destructive",
           });
           continue;
         }
 
         // Create a unique toast ID for this file
-        const fileToastId = `upload-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        
+        const fileToastId = `upload-${Date.now()}-${Math.random()
+          .toString(36)
+          .substring(2, 9)}`;
+
         // Show toast for this specific file upload
         toast({
           title: "Uploading...",
@@ -174,8 +173,7 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
           );
 
           if (response.success && response.data) {
-            setFiles((prev) => [...prev, response.data as TechStackFile]);
-
+            refetchStackData();
             // Update the file's specific toast with success
             toast({
               title: "Upload Complete",
@@ -184,7 +182,7 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
             });
           } else {
             console.error("Upload error:", response.message);
-            
+
             // Update the file's specific toast with error
             toast({
               title: "Upload Failed",
@@ -194,7 +192,7 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
           }
         } catch (uploadError) {
           console.error("Error in file upload:", uploadError);
-          
+
           // Update the file's specific toast with error
           toast({
             title: "Upload Error",
@@ -208,11 +206,11 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
       toast({
         title: "Upload Complete",
         description: `${
-          category === 'pitch_deck'
-            ? 'Pitch deck'
-            : category === 'financials'
-            ? 'Financial documents'
-            : 'Media files'
+          category === "pitch_deck"
+            ? "Pitch deck"
+            : category === "financials"
+            ? "Financial documents"
+            : "Media files"
         } have been processed`,
         variant: "default",
       });
@@ -239,10 +237,10 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
   const handleMediaUpload = (files: File[]) => {
     for (const file of files) {
       let category;
-      if (file.type.startsWith('image/')) {
-        category = 'image';
-      } else if (file.type.startsWith('video/')) {
-        category = 'video';
+      if (file.type.startsWith("image/")) {
+        category = "image";
+      } else if (file.type.startsWith("video/")) {
+        category = "video";
       } else {
         toast({
           title: "Invalid File Type",
@@ -251,7 +249,7 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
         });
         continue;
       }
-      
+
       uploadFileByCategory([file], category);
     }
   };
@@ -272,8 +270,7 @@ export function StackInfo({ onTabChange, onComplete }: StackInfoProps) {
       const response = await deleteTechStackFile(user.id, fileId);
 
       if (response.success) {
-        setFiles((prev) => prev.filter((file) => file.id !== fileId));
-
+        refetchStackData();
         toast({
           title: "Success",
           description: "File deleted successfully",

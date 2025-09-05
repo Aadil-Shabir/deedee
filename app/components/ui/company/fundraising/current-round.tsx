@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { FormField, CurrencyInput, PercentageInput } from "./form-field";
 import { RadioOptions } from "./radio-options";
@@ -9,8 +9,12 @@ import { PieChart, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCompanyContext } from "@/context/company-context";
 import { useUser } from "@/hooks/use-user";
-import { getCurrentRoundData, saveCurrentRoundData } from "@/actions/actions.fundraising";
+import {
+  getCurrentRoundData,
+  saveCurrentRoundData,
+} from "@/actions/actions.fundraising";
 import { useToast } from "@/components/ui/toast-provider";
+import { useCurrentFundraising } from "@/hooks/query-hooks/use-fundraising-queries";
 
 const reasonOptions = [
   { value: "growth", label: "For Growth" },
@@ -34,7 +38,7 @@ const closingTimeOptions = [
 
 interface CurrentRoundProps {
   onNext?: () => void;
-  onComplete: ()=> void; 
+  onComplete: () => void;
 }
 
 export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
@@ -56,7 +60,6 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
   const [debtAmount, setDebtAmount] = useState("");
 
   // UI state
-  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   // Hooks for context and toast
@@ -64,8 +67,36 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
   const { user } = useUser();
   const { toast } = useToast();
 
+  const {
+    data: fundraisingData,
+    isLoading,
+    error: fundraisingError,
+    refetch: refetchFundraisingData,
+  } = useCurrentFundraising(activeCompanyId || "");
+
+  // Load data when React Query data becomes available
+  useEffect(() => {
+    if (fundraisingData) {
+      // Set state with loaded data
+      setCapitalReason(fundraisingData.capital_reason || "growth");
+      setRaisingAmount(fundraisingData.raising_amount?.toString() || "");
+      setLatestValuation(fundraisingData.latest_valuation?.toString() || "");
+      setCurrentValuation(fundraisingData.current_valuation?.toString() || "");
+      setFundingType(fundraisingData.funding_type || "equity");
+      setEquityPercentage(fundraisingData.equity_percentage?.toString() || "");
+      setMinInvestment(fundraisingData.min_investment?.toString() || "");
+      setMaxInvestment(fundraisingData.max_investment?.toString() || "");
+      setClosingTime(fundraisingData.closing_time || "");
+
+      // Set conditional fields
+      setInterestRate(fundraisingData.interest_rate?.toString() || "");
+      setEquityAmount(fundraisingData.equity_amount?.toString() || "");
+      setDebtAmount(fundraisingData.debt_amount?.toString() || "");
+    }
+  }, [fundraisingData]);
+
   // Track completion status for each field
-  const getFields = () => {
+  const getFields = useCallback(() => {
     const baseFields = [
       { id: "capitalReason", isCompleted: !!capitalReason },
       { id: "raisingAmount", isCompleted: !!raisingAmount },
@@ -79,80 +110,48 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
 
     // Add funding type specific fields
     if (fundingType === "equity") {
-      return [...baseFields, 
-        { id: "equityPercentage", isCompleted: !!equityPercentage }
+      return [
+        ...baseFields,
+        { id: "equityPercentage", isCompleted: !!equityPercentage },
       ];
     } else if (fundingType === "debt") {
-      return [...baseFields, 
-        { id: "interestRate", isCompleted: !!interestRate }
+      return [
+        ...baseFields,
+        { id: "interestRate", isCompleted: !!interestRate },
       ];
     } else if (fundingType === "mixed") {
-      return [...baseFields, 
+      return [
+        ...baseFields,
         { id: "equityAmount", isCompleted: !!equityAmount },
         { id: "debtAmount", isCompleted: !!debtAmount },
-        { id: "interestRate", isCompleted: !!interestRate }
+        { id: "interestRate", isCompleted: !!interestRate },
       ];
     }
 
     return baseFields;
-  };
+  }, [
+    capitalReason,
+    raisingAmount,
+    latestValuation,
+    currentValuation,
+    fundingType,
+    equityPercentage,
+    minInvestment,
+    maxInvestment,
+    closingTime,
+    interestRate,
+    equityAmount,
+    debtAmount,
+  ]);
 
   // Calculate completion percentage
   useEffect(() => {
     const fields = getFields();
-    const completedFields = fields.filter(field => field.isCompleted).length;
+    const completedFields = fields.filter((field) => field.isCompleted).length;
     const totalFields = fields.length;
     const percentage = Math.round((completedFields / totalFields) * 100);
     setCompletionPercentage(percentage);
-  }, [
-    capitalReason, raisingAmount, latestValuation, currentValuation,
-    fundingType, equityPercentage, minInvestment, maxInvestment, closingTime,
-    interestRate, equityAmount, debtAmount
-  ]);
-
-  // Load data when component mounts or company changes
-  useEffect(() => {
-    const loadCurrentRoundData = async () => {
-      if (!user?.id || !activeCompanyId) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        setIsLoading(true);
-        const response = await getCurrentRoundData(user.id, activeCompanyId);
-
-        if (response.success && response.data) {
-          // Set state with loaded data
-          setCapitalReason(response.data.capitalReason);
-          setRaisingAmount(response.data.raisingAmount);
-          setLatestValuation(response.data.latestValuation);
-          setCurrentValuation(response.data.currentValuation);
-          setFundingType(response.data.fundingType);
-          setEquityPercentage(response.data.equityPercentage);
-          setMinInvestment(response.data.minInvestment);
-          setMaxInvestment(response.data.maxInvestment);
-          setClosingTime(response.data.closingTime);
-
-          // Set conditional fields
-          setInterestRate(response.data.interestRate || "");
-          setEquityAmount(response.data.equityAmount || "");
-          setDebtAmount(response.data.debtAmount || "");
-        }
-      } catch (err) {
-        console.error("Error loading fundraising data:", err);
-        toast({
-          title: "Error",
-          description: "Failed to load fundraising data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadCurrentRoundData();
-  }, [user, activeCompanyId, toast]);
+  }, [getFields]);
 
   // Handle funding type change
   const handleFundingTypeChange = (type: string) => {
@@ -180,7 +179,7 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
       });
       return;
     }
-    if(onComplete){
+    if (onComplete) {
       onComplete();
     }
 
@@ -209,13 +208,18 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
         closingTime,
         interestRate,
         equityAmount,
-        debtAmount
+        debtAmount,
       };
 
       // Call server action to save data
-      const response = await saveCurrentRoundData(user.id, activeCompanyId, data);
+      const response = await saveCurrentRoundData(
+        user.id,
+        activeCompanyId,
+        data
+      );
 
       if (response.success) {
+        refetchFundraisingData();
         toast({
           title: "Success",
           description: "Fundraising information saved successfully",
@@ -229,7 +233,8 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
       } else {
         toast({
           title: "Error",
-          description: response.message || "Failed to save fundraising information",
+          description:
+            response.message || "Failed to save fundraising information",
           variant: "destructive",
         });
       }
@@ -257,7 +262,8 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
       ) : !activeCompanyId ? (
         <div className="bg-amber-900/20 border border-amber-700/50 p-4 rounded-lg">
           <p className="text-amber-200 text-center">
-            No company selected. Please select a company to manage fundraising information.
+            No company selected. Please select a company to manage fundraising
+            information.
           </p>
         </div>
       ) : (
@@ -267,11 +273,18 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <PieChart className="h-5 w-5 text-primary" />
-                <span className="text-sm font-medium text-zinc-200">Section Completion</span>
+                <span className="text-sm font-medium text-zinc-200">
+                  Section Completion
+                </span>
               </div>
-              <span className="text-sm font-medium text-primary">{completionPercentage}%</span>
+              <span className="text-sm font-medium text-primary">
+                {completionPercentage}%
+              </span>
             </div>
-            <Progress value={completionPercentage} className="h-2 bg-zinc-700" />
+            <Progress
+              value={completionPercentage}
+              className="h-2 bg-zinc-700"
+            />
           </div>
 
           <section>
@@ -327,7 +340,11 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
               />
             </FormField>
 
-            <FormField id="funding-type" label="I'm raising:" isCompleted={!!fundingType}>
+            <FormField
+              id="funding-type"
+              label="I'm raising:"
+              isCompleted={!!fundingType}
+            >
               <RadioOptions
                 options={fundingTypeOptions}
                 value={fundingType}
@@ -348,7 +365,9 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <ChevronDown className="h-5 w-5 text-primary" />
-                    <h3 className="text-sm font-medium text-zinc-200">Debt Funding Details</h3>
+                    <h3 className="text-sm font-medium text-zinc-200">
+                      Debt Funding Details
+                    </h3>
                   </div>
 
                   <FormField
@@ -376,7 +395,9 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
                 >
                   <div className="flex items-center gap-2 mb-3">
                     <ChevronDown className="h-5 w-5 text-primary" />
-                    <h3 className="text-sm font-medium text-zinc-200">Mixed Funding Details</h3>
+                    <h3 className="text-sm font-medium text-zinc-200">
+                      Mixed Funding Details
+                    </h3>
                   </div>
 
                   <FormField
@@ -477,11 +498,14 @@ export function CurrentRound({ onNext, onComplete }: CurrentRoundProps) {
           </section>
 
           <div className="flex justify-between pt-4 border-t border-zinc-800">
-            <Button variant="outline" className="border-zinc-700 text-zinc-300 hover:bg-zinc-800">
+            <Button
+              variant="outline"
+              className="border-zinc-700 text-zinc-300 hover:bg-zinc-800"
+            >
               BACK
             </Button>
-            <Button 
-              className="bg-primary hover:bg-primary/90" 
+            <Button
+              className="bg-primary hover:bg-primary/90"
               onClick={handleNext}
               disabled={isSaving}
             >

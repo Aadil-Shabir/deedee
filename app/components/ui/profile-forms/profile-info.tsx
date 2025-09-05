@@ -11,10 +11,8 @@ import { ImageCropper } from "@/components/ui/image-cropper";
 import { useUser } from "@/hooks/use-user";
 import { useToast } from "@/components/ui/toast-provider";
 import { uploadProfilePicture, saveProfileInfo } from "@/lib/supabase-utils";
-import { createClient } from "@/supabase/supabase";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-
-const supabase = createClient();
+import { useProfileData } from "@/hooks/query-hooks/use-profile-queries";
 
 const ProfileInfo = ({onComplete}: {onComplete: ()=> void}) => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
@@ -28,72 +26,50 @@ const ProfileInfo = ({onComplete}: {onComplete: ()=> void}) => {
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [tempImageFile, setTempImageFile] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const { user, loading } = useUser();
   const { toast } = useToast();
-  
-  // console.log('user', user);  
-  // Load user profile data
+
+  // Use React Query to fetch profile data
+  const { 
+    data: profileData, 
+    isLoading, 
+    error: profileError,
+    refetch: refetchProfileData
+  } = useProfileData(user?.id || "");
+
+  // Load profile data when it becomes available
   useEffect(() => {
-    async function loadProfileData() {
-      console.log("jfnjsdnfjn")
-      if (!user) return;
-      
-      setIsLoading(true);
-      try {
-        // console.log('user', user);
-        
-        // Get profile data from supabase
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+    if (!user) return;
 
-        // console.log('profileData', profileData);
-
-        // For new users with no profile data, populate from metadata
-        if (!profileData) {
-          const metadata = user.user_metadata;
-          if (metadata) {
-            setFirstName(metadata.first_name || '');
-            setLastName(metadata.last_name || '');
-            setEmail(user.email || '');
-          }
-        }
-        
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Error loading profile data:', profileError);
-        }
-        
-        if (profileData) {
-          console.log('profileData found');
-          console.log(profileData.profile_picture_url);
-          // Set form fields with profile data
-          setFirstName(profileData.first_name || '');
-          setLastName(profileData.last_name || '');
-          setEmail(profileData.email || user.email || '');
-          setCompanyFunction(profileData.company_function || '');
-          setFounderType(profileData.founder_type || 'first-time');
-          setCalendarLink(profileData.calendar_link || '');
-          setInstagramLink(profileData.instagram_link || '');
-          setLinkedinUrl(profileData.linkedin_url || '');
-          
-          if (profileData.profile_picture_url) {
-            setProfilePicture(profileData.profile_picture_url);
-          }
-        }
-      } catch (error) {
-        console.error('Error in loadProfileData:', error);
-      } finally {
-        setIsLoading(false);
+    // For new users with no profile data, populate from metadata
+    if (!profileData && !isLoading) {
+      const metadata = user.user_metadata;
+      if (metadata) {
+        setFirstName(metadata.first_name || '');
+        setLastName(metadata.last_name || '');
+        setEmail(user.email || '');
       }
     }
     
-      loadProfileData();
-    
-  }, [user]);
+    if (profileData) {
+      console.log('profileData found');
+      console.log(profileData.profile_picture_url);
+      // Set form fields with profile data
+      setFirstName(profileData.first_name || '');
+      setLastName(profileData.last_name || '');
+      setEmail(profileData.email || user.email || '');
+      setCompanyFunction(profileData.company_function || '');
+      setFounderType(profileData.founder_type || 'first-time');
+      setCalendarLink(profileData.calendar_link || '');
+      setInstagramLink(profileData.instagram_link || '');
+      setLinkedinUrl(profileData.linkedin_url || '');
+      
+      if (profileData.profile_picture_url) {
+        setProfilePicture(profileData.profile_picture_url);
+      }
+    }
+  }, [user, profileData, isLoading]);
 
   // Handle file selection for cropping
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,6 +158,9 @@ const ProfileInfo = ({onComplete}: {onComplete: ()=> void}) => {
       });
 
       if (result.success) {
+        // Refetch profile data to update the form with latest values
+        refetchProfileData();
+        
         toast({
           title: "Success",
           description: "Your profile has been updated successfully",

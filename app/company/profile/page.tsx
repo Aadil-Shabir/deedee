@@ -14,11 +14,13 @@ import { CompanyReviews } from "@/app/components/ui/profile-forms/review-form";
 import { MatchForm } from "@/app/components/ui/profile-forms/match-form";
 import { useProfileContext } from "@/context/profile-context";
 import { ProfileProgress } from "@/app/components/layout/profile-progress";
-import { createClient } from "@/supabase/supabase";
 import { useUser } from "@/hooks/use-user";
 import { useCompanyContext } from "@/context/company-context";
 import CompanyProfilePage from "@/app/components/ui/company/business-forms/business-profile";
 import { useCallback } from "react";
+import { useProfileCompletion } from "@/hooks/query-hooks/use-profile-completion";
+import { useCompanyQuery } from "@/hooks/query-hooks/useCompanyData";
+
 
 // List of valid tabs for validation
 const validTabs = [
@@ -61,165 +63,24 @@ export default function ProfilePage(): JSX.Element {
   const { completedTabs, markTabCompleted } = useProfileContext();
   const { user } = useUser();
   const { activeCompanyId } = useCompanyContext();
-  const [profileCompletionPercentage, setProfileCompletionPercentage] = useState<number>(0);
-  const [isLoadingProgress, setIsLoadingProgress] = useState<boolean>(true);
 
-  // Add proper type for the company data
-  interface CompanyData {
-    id: string;
-    company_name?: string | null;
-    web_url?: string | null;
-    short_description?: string | null;
-    full_description?: string | null;
-    [key: string]: any; // Allow other properties
-  }
 
-  interface FundraisingData {
-    funding_stage?: string | null;
-    amount_raised?: number | null;
-    [key: string]: any; // Allow other properties
-  }
+    const { 
+    data: profileData, 
+    isLoading: isLoadingProgress, 
+    error: profileError 
+  } = useProfileCompletion(activeCompanyId || "");
 
-  interface TractionData {
-    revenue?: number | null;
-    users?: number | null;
-    growth_rate?: number | null;
-    [key: string]: any; // Allow other properties
-  }
+    const { 
+    data: companyData,
+    isLoading: isLoadingCompany,
+    error: companyError
+  } = useCompanyQuery(activeCompanyId || "");
 
-  // Memoize the fetchProfileCompletion function to prevent unnecessary recreations
-  const fetchProfileCompletion = useCallback(async () => {
-    if (!user || !activeCompanyId) {
-      setIsLoadingProgress(false); // Don't keep loading if we don't have user/company
-      return;
-    }
 
-    setIsLoadingProgress(true);
-    let completedSections = 0;
-    const totalSections = 6; // profile, business, team, fundraising, traction, stack
+  const profileCompletionPercentage = profileData?.completionPercentage || 0;
 
-    try {
-      const supabase = createClient(); // No need for await here, createClient is synchronous
 
-      // Use Promise.all for concurrent requests to improve performance
-      const [
-        companyResponse,
-        teamCountResponse,
-        fundraisingResponse,
-        tractionResponse,
-        stackCountResponse
-      ] = await Promise.all([
-        // Get company profile data
-        supabase
-          .from("companies")
-          .select("*")
-          .eq("id", activeCompanyId)
-          .single(),
-        
-        // Get team members count
-        supabase
-          .from("team_members")
-          .select("id", { count: "exact", head: true })
-          .eq("company_id", activeCompanyId),
-        
-        // Get fundraising data
-        supabase
-          .from("fundraising_current")
-          .select("*")
-          .eq("company_id", activeCompanyId)
-          .maybeSingle(),
-        
-        // Get traction data
-        supabase
-          .from("traction_data")
-          .select("*")
-          .eq("company_id", activeCompanyId)
-          .maybeSingle(),
-        
-        // Get tech stack count
-        supabase
-          .from("tech_stack")
-          .select("id", { count: "exact", head: true })
-          .eq("company_id", activeCompanyId)
-      ]);
-
-      // Destructure responses with proper typing
-      const { data: companyData, error: companyError } = companyResponse as { data: CompanyData | null; error: Error | null };
-      const { count: teamCount, error: teamError } = teamCountResponse as { count: number | null; error: Error | null };
-      const { data: fundraisingData, error: fundraisingError } = fundraisingResponse as { data: FundraisingData | null; error: Error | null };
-      const { data: tractionData, error: tractionError } = tractionResponse as { data: TractionData | null; error: Error | null };
-      const { count: stackCount, error: stackError } = stackCountResponse as { count: number | null; error: Error | null };
-
-      // Log any errors but continue processing
-      [
-        { name: "company", error: companyError },
-        { name: "team", error: teamError },
-        { name: "fundraising", error: fundraisingError },
-        { name: "traction", error: tractionError },
-        { name: "stack", error: stackError }
-      ].forEach(item => {
-        if (item.error instanceof Error || (typeof item.error=='string' && item.error)) {
-          console.error(`Error fetching ${item.name} data:`, item.error);
-        }
-      });
-
-      // Check company profile completion
-      if (
-        companyData &&
-        companyData.company_name &&
-        companyData.web_url &&
-        companyData.short_description
-      ) {
-        completedSections += 1; // Profile section
-
-        if (companyData.full_description) {
-          completedSections += 1; // Business section
-        }
-      }
-
-      // Check team completion
-      if (teamCount && teamCount > 0) {
-        completedSections += 1; // Team section
-      }
-
-      // Check fundraising completion
-      if (
-        fundraisingData &&
-        (fundraisingData.funding_stage || fundraisingData.amount_raised !== null)
-      ) {
-        completedSections += 1; // Fundraising section
-      }
-
-      // Check traction completion
-      if (
-        tractionData &&
-        (tractionData.revenue !== null ||
-          tractionData.users !== null ||
-          tractionData.growth_rate !== null)
-      ) {
-        completedSections += 1; // Traction section
-      }
-
-      // Check tech stack completion
-      if (stackCount && stackCount > 0) {
-        completedSections += 1; // Stack section
-      }
-
-      // Calculate percentage (each section is worth equal percentage)
-      const percentage = Math.round((completedSections / totalSections) * 100);
-      
-      setProfileCompletionPercentage(percentage);
-    } catch (error) {
-      console.error("Error calculating profile completion:", error);
-    } finally {
-      setIsLoadingProgress(false);
-    }
-  }, [user, activeCompanyId]);
-
-  // Calculate profile completion percentage based on data
-  useEffect(() => {
-    fetchProfileCompletion();
-  }, [fetchProfileCompletion]);
 
   // Update tab handler to also update URL
   const handleTabChange = (tabId: TabId) => {
