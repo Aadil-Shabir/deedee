@@ -19,6 +19,8 @@ import {
   BarChart3,
   HelpCircle,
   LogOut,
+  PlusCircle,
+  Eye,
 } from "lucide-react";
 import Image from "next/image";
 import {
@@ -34,6 +36,13 @@ import { Button } from "@/components/ui/button";
 import { useUser } from "@/hooks/use-user";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { useCompanyContext } from "@/context/company-context";
+
+interface Company {
+  id: string;
+  company_name: string;
+  logo_url?: string | null;
+}
 
 const sidebarLinks = [
   {
@@ -94,7 +103,12 @@ function SidebarContent({
   const { user } = useUser();
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [userName, setUserName] = useState("User");
-  const [companyName, setCompanyName] = useState("Goodboy Indonesia");
+  // const [companyName, setCompanyName] = useState("Goodboy Indonesia");
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
+
+  const companyContext = useCompanyContext();
+  const activeCompanyId = companyContext?.activeCompanyId;
+  const companies = companyContext?.allUserCompanies || [];
 
   // Handle user logout
   const handleLogout = async () => {
@@ -118,6 +132,51 @@ function SidebarContent({
     }
   };
 
+    const handleCompanySwitch = async (company: Company) => {
+    if (companyContext) {
+      // Use context method if available
+      companyContext.setActiveCompanyId(company.id);
+    } else {
+      try {
+        const { createClient } = await import('@/supabase/supabase');
+        const supabase = createClient();
+        
+        // Update active company in database directly
+        if (user) {
+          await supabase
+            .from('companies')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', company.id);
+          
+          // Reload the page to refresh data with the new company context
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Error switching company:', error);
+      }
+    }
+    
+    // Close mobile menu after action
+    if (closeMobileMenu) {
+      closeMobileMenu();
+    }
+  };
+
+  // Navigate to create new company page
+  const handleCreateNewCompany = () => {
+    if (companyContext) {
+      // Use context method if available
+      companyContext.createNewCompany();
+    } else {
+      // Fallback to URL-based approach
+      window.location.href = '/company/profile?action=new';
+    }
+    
+    // Close mobile menu after action
+    if (closeMobileMenu) {
+      closeMobileMenu();
+    }
+  };
   // Load user profile data when user object is available
   useEffect(() => {
     if (user) {
@@ -190,6 +249,12 @@ function SidebarContent({
     }
   };
 
+  const activeCompany = companies.find(company => company.id === activeCompanyId) || 
+                         (companies.length > 0 ? companies[0] : null);
+  
+
+  const companyName = activeCompany ? activeCompany.company_name : "No Company";
+
   return (
     <div className={cn("h-full flex flex-col bg-[#121218]", className)}>
       <div className="px-4 py-3">
@@ -230,7 +295,111 @@ function SidebarContent({
         })}
       </nav>
 
-      <div className="p-3 m-2 mt-auto rounded-md bg-zinc-800/30 flex items-center">
+      <div className="lg:hidden px-2 pb-4 space-y-3 border-t border-zinc-800 pt-4">
+        {/* Company Dropdown */}
+        <div className="space-y-2">
+          <h4 className="text-xs text-zinc-500 uppercase tracking-wider px-3">Company</h4>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center px-3 py-2 text-sm bg-zinc-800/50 rounded-md text-zinc-100">
+                {isLoadingCompanies ? (
+                  <span className="animate-pulse">Loading...</span>
+                ) : (
+                  <>
+                    {activeCompany?.logo_url && (
+                      <div className="h-5 w-5 rounded-full overflow-hidden mr-2">
+                        <Image 
+                          src={activeCompany.logo_url} 
+                          alt={companyName}
+                          width={20} 
+                          height={20}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <span className="flex-1 text-left truncate">{companyName}</span>
+                    <ChevronDown className="ml-2 h-4 w-4 text-zinc-400" />
+                  </>
+                )}
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56 bg-zinc-800 border-zinc-700 text-zinc-100">
+              <DropdownMenuLabel className="text-xs text-zinc-400">
+                Your Companies
+              </DropdownMenuLabel>
+              
+              {/* List of companies */}
+              {companies.map(company => (
+                <DropdownMenuItem 
+                  key={company.id}
+                  className={`hover:bg-zinc-700 cursor-pointer ${
+                    activeCompanyId === company.id ? 'bg-zinc-700/50' : ''
+                  }`}
+                  onClick={() => handleCompanySwitch(company)}
+                >
+                  <div className="flex items-center w-full">
+                    {company.logo_url ? (
+                      <div className="h-5 w-5 rounded-full overflow-hidden mr-2">
+                        <Image 
+                          src={company.logo_url} 
+                          alt={company.company_name}
+                          width={20} 
+                          height={20}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="h-5 w-5 rounded-full bg-zinc-700 mr-2 flex items-center justify-center">
+                        <span className="text-xs">{company.company_name.charAt(0)}</span>
+                      </div>
+                    )}
+                    <span className="flex-1 truncate">{company.company_name}</span>
+                    {activeCompanyId === company.id && (
+                      <span className="h-2 w-2 bg-primary rounded-full ml-2" />
+                    )}
+                  </div>
+                </DropdownMenuItem>
+              ))}
+              
+              <DropdownMenuSeparator className="bg-zinc-700" />
+              
+
+              <DropdownMenuItem 
+                className="hover:bg-zinc-700 cursor-pointer text-primary"
+                onClick={handleCreateNewCompany}
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                <span>Create New Company</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+
+        <div className="space-y-2">
+          <h4 className="text-xs text-zinc-500 uppercase tracking-wider px-3">Actions</h4>
+          <div className="flex flex-col gap-2">
+            <Button 
+              className="w-full bg-primary hover:bg-primary/90 text-white justify-start "
+              onClick={closeMobileMenu}
+            >
+              Upgrade
+            </Button>
+            <Link href={`/company/${activeCompanyId}`} target="_blank" rel="noopener noreferrer">
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90 text-white flex items-center justify-start gap-2"
+                onClick={closeMobileMenu}
+              >
+                <Eye className="h-4 w-4"/>
+                Public View
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>  
+
+
+      <div className=" p-3 m-2 mt-auto rounded-md bg-zinc-800/30 flex items-center">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <div className="flex items-center gap-2 bg-zinc-800/30 px-3 py-2 rounded-full cursor-pointer hover:bg-zinc-800/50 transition-colors w-full">

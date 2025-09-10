@@ -172,14 +172,15 @@ export function Header() {
 
   return (
     <header className="bg-[#121218] border-b border-zinc-800">
-      <div className="flex items-center justify-between h-16 px-6">
+      <div className="flex items-center justify-between h-16 pl-16 lg:pl-6">
+
         <div className="flex items-center">
           <Link href="/company/basecamp" className="text-2xl font-bold text-white">
             DeeDee
           </Link>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="hidden lg:flex items-center space-x-4">
           {/* Company Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

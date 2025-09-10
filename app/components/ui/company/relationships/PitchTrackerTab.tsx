@@ -100,7 +100,7 @@ const DroppableStages = ({
 }) => {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-6 gap-4 md:grid-cols-6 sm:grid-cols-1">
         {stages.map((stage) => (
           <div key={stage.id} className="space-y-4">
             <div className="flex items-center justify-between">
@@ -117,7 +117,7 @@ const DroppableStages = ({
   }
 
   return (
-    <div className="grid grid-cols-6 gap-4">
+    <div className="grid grid-cols-6 gap-4 md:grid-cols-6 sm:grid-cols-1 ">
       {stages.map((stage) => (
         <Droppable 
           key={stage.id} 
@@ -125,6 +125,7 @@ const DroppableStages = ({
           isDropDisabled={false}
           isCombineEnabled={false}
           ignoreContainerClipping={false}
+          direction={"vertical"}
         >
           {(provided) => (
             <div
@@ -138,7 +139,11 @@ const DroppableStages = ({
                   {investors[stage.id]?.length || 0}
                 </span>
               </div>
-              <div className="space-y-1 min-h-[200px]">
+<div className="flex flex-col space-y-1 min-h-[200px] 
+                sm:min-h-[100px] sm:flex-row sm:space-x-2 sm:space-y-0 sm:overflow-x-auto sm:pb-2 
+                lg:flex-col lg:space-y-1 lg:space-x-0 lg:overflow-visible lg:pb-0">
+
+
                 {Array.isArray(investors[stage.id]) && investors[stage.id].length > 0 ? (
                   investors[stage.id].map((investor, index) => (
                     <Draggable
@@ -147,12 +152,14 @@ const DroppableStages = ({
                       index={index}
                     >
                       {(provided) => (
+                        // <div className="sm:flex-shrink-0 sm:w-64">
                         <DraggableCard
                           ref={provided.innerRef}
                           provided={provided}
                           investor={investor}
                           onClick={() => onCardClick(investor)}
                         />
+            // </div>
                       )}
                     </Draggable>
                   ))
