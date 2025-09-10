@@ -39,4 +39,5 @@ export function useCompanyQuery(companyId: string) {
     gcTime: 1000 * 60 * 30, // 30 minutes formerly cacheTime
     refetchOnWindowFocus: false, 
   });
+
 }

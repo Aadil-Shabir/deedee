@@ -7,13 +7,13 @@ import { Progress } from "@/components/ui/progress";
 import { PieChart } from "lucide-react";
 import { useCompanyContext } from "@/context/company-context";
 import { useUser } from "@/hooks/use-user";
-import { 
-  getInvestors, 
-  deleteInvestor 
-} from "@/actions/actions.fundraising";
-import { submitInvestorByCompanyName } from "@/actions/actions.investor-form";
 import { useToast } from "@/components/ui/toast-provider";
 import { FormField } from "./form-field";
+import { 
+  useFundraisingInvestors,
+  useAddFundraisingInvestor,
+  useDeleteFundraisingInvestor
+} from "@/hooks/query-hooks/use-fundraising-investors";
 
 interface PastFundraisingProps {
   onBack?: () => void;
@@ -22,17 +22,22 @@ interface PastFundraisingProps {
 
 export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {}) {
   // Form state
-  const [investors, setInvestors] = useState<any[]>([]);
   const [completionPercentage, setCompletionPercentage] = useState(0);
   
-  // UI state
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
   
-  // Hooks for context and toast
   const { activeCompanyId } = useCompanyContext();
   const { user } = useUser();
   const { toast } = useToast();
+
+  
+  const { 
+    data: investors = [], 
+    isLoading, 
+    error 
+  } = useFundraisingInvestors(user?.id || "", activeCompanyId || "");
+  
+  const addInvestorMutation = useAddFundraisingInvestor();
+  const deleteInvestorMutation = useDeleteFundraisingInvestor();
 
   // Calculate completion percentage
   useEffect(() => {
@@ -46,38 +51,18 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
     const percentage = Math.round((completedFields / totalFields) * 100);
     setCompletionPercentage(percentage);
   }, [investors.length]);
-  
-  // Load data when component mounts or company changes
+
+  // Handle React Query error
   useEffect(() => {
-    const loadInvestorsData = async () => {
-      if (!user?.id || !activeCompanyId) {
-        setIsLoading(false);
-        return;
-      }
-      
-      try {
-        setIsLoading(true);
-        
-        // Load investors
-        const investorsResponse = await getInvestors(user.id, activeCompanyId);
-        
-        if (investorsResponse.success && investorsResponse.data) {
-          setInvestors(investorsResponse.data);
-        }
-      } catch (err) {
-        console.error("Error loading investors data:", err);
-        toast({
-          title: "Error",
-          description: "Failed to load investors data",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadInvestorsData();
-  }, [ activeCompanyId,user, isSaving, toast]);
+    if (error) {
+      console.error("Error loading investors data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load investors data",
+        variant: "destructive",
+      });
+    }
+  }, [error, toast]);
 
   // Add investor handler
   const handleAddInvestor = async (investorData: any) => {
@@ -91,34 +76,21 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
     }
     
     try {
-      const response = await submitInvestorByCompanyName(investorData, user.id);
+      await addInvestorMutation.mutateAsync({ 
+        investorData, 
+        userId: user.id 
+      });
       
-      if (response.success && response.data) {
-        // Add the new investor to the state with the returned ID
-        const newInvestor = {
-          ...investorData,
-          id: response.data.id,
-        };
-        
-        setInvestors([newInvestor, ...investors]);
-        
-        toast({
-          title: "Success",
-          description: "Investor added successfully",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to add investor",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
+      toast({
+        title: "Success",
+        description: "Investor added successfully",
+        variant: "default",
+      });
+    } catch (err: any) {
       console.error("Error adding investor:", err);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: err.message || "An unexpected error occurred",
         variant: "destructive",
       });
     }
@@ -136,29 +108,21 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
     }
     
     try {
-      const response = await deleteInvestor(user.id, investorId);
+      await deleteInvestorMutation.mutateAsync({ 
+        userId: user.id, 
+        investorId 
+      });
       
-      if (response.success) {
-        // Remove the deleted investor from the state
-        setInvestors(investors.filter(inv => inv.id !== investorId));
-        
-        toast({
-          title: "Success",
-          description: "Investor removed successfully",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to delete investor",
-          variant: "destructive",
-        });
-      }
-    } catch (err) {
+      toast({
+        title: "Success",
+        description: "Investor removed successfully",
+        variant: "default",
+      });
+    } catch (err: any) {
       console.error("Error deleting investor:", err);
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: err.message || "An unexpected error occurred",
         variant: "destructive",
       });
     }
@@ -219,7 +183,7 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
       ) : (
         <>
           {/* Completion Progress */}
-          <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
+          {/* <div className="bg-zinc-800/50 p-4 rounded-lg border border-zinc-700">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <PieChart className="h-5 w-5 text-primary" />
@@ -228,7 +192,7 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
               <span className="text-sm font-medium text-primary">{completionPercentage}%</span>
             </div>
             <Progress value={completionPercentage} className="h-2 bg-zinc-700" />
-          </div>
+          </div> */}
 
           <section>
             <div className="mt-8">
@@ -257,9 +221,9 @@ export function PastFundraising({ onBack, onComplete }: PastFundraisingProps = {
             <Button 
               className="bg-primary hover:bg-primary/90"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={addInvestorMutation.isPending || deleteInvestorMutation.isPending}
             >
-              {isSaving ? "Saving..." : "Save & Next"}
+              {(addInvestorMutation.isPending || deleteInvestorMutation.isPending) ? "Saving..." : "Save & Next"}
             </Button>
           </div>
         </>

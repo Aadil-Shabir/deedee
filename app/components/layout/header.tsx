@@ -27,12 +27,12 @@ export function Header() {
   const { user } = useUser();
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [userName, setUserName] = useState("User");
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
   
-  // Access company context (if available)
+
   const companyContext = useCompanyContext();
   const activeCompanyId = companyContext?.activeCompanyId;
   const companies = companyContext?.allUserCompanies || [];
+  const isLoadingCompanies = companyContext?.isLoading || false;
 
   // Handle user logout
   const handleLogout = async () => {
@@ -136,22 +136,13 @@ export function Header() {
             }
           }
         
-        setIsLoadingCompanies(false);
       } catch (error) {
         console.error('Error fetching user data:', error);
-        setIsLoadingCompanies(false);
       }
     };
     
     fetchUserData();
   }, [user]);
-
-  // Make sure the active company is updated whenever it changes
-  useEffect(() => {
-    if (companyContext?.activeCompanyId) {
-      setIsLoadingCompanies(false);
-    }
-  }, [companyContext?.activeCompanyId]);
 
   // Get user initials for avatar fallback
   const getUserInitials = () => {
@@ -167,8 +158,24 @@ export function Header() {
   const activeCompany = companies.find(company => company.id === activeCompanyId) || 
                          (companies.length > 0 ? companies[0] : null);
   
-  // Get company name to display
-  const companyName = activeCompany ? activeCompany.company_name : "No Company";
+  const getCompanyDisplayName = () => {
+    if (isLoadingCompanies ) {
+      return "Loading...";
+    }
+    if (activeCompany) {
+      return activeCompany.company_name;
+    }
+    if (companies.length === 0 && !isLoadingCompanies) {
+      console.log("this No Company block is called:",companies.length,companies)
+      return "No Company";
+      
+    }
+    return "Select Company";
+  };
+  
+  const companyName = getCompanyDisplayName();
+
+  console.log(activeCompany,"ative_company in header")
 
   return (
     <header className="bg-[#121218] border-b border-zinc-800">
@@ -184,7 +191,10 @@ export function Header() {
           {/* Company Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center px-4 py-2 text-sm bg-zinc-800/50 rounded-md text-zinc-100">
+              <button 
+                className="flex items-center px-4 py-2 text-sm bg-zinc-800/50 rounded-md text-zinc-100"
+                disabled={isLoadingCompanies}
+              >
                 {isLoadingCompanies ? (
                   <span className="animate-pulse">Loading...</span>
                 ) : (
@@ -207,53 +217,67 @@ export function Header() {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-zinc-800 border-zinc-700 text-zinc-100">
-              <DropdownMenuLabel className="text-xs text-zinc-400">
-                Your Companies
-              </DropdownMenuLabel>
-              
-              {/* List of companies */}
-              {companies.map(company => (
-                <DropdownMenuItem 
-                  key={company.id}
-                  className={`hover:bg-zinc-700 cursor-pointer ${
-                    activeCompanyId === company.id ? 'bg-zinc-700/50' : ''
-                  }`}
-                  onClick={() => handleCompanySwitch(company)}
-                >
-                  <div className="flex items-center w-full">
-                    {company.logo_url ? (
-                      <div className="h-5 w-5 rounded-full overflow-hidden mr-2">
-                        <Image 
-                          src={company.logo_url} 
-                          alt={company.company_name}
-                          width={20} 
-                          height={20}
-                          className="h-full w-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-5 w-5 rounded-full bg-zinc-700 mr-2 flex items-center justify-center">
-                        <span className="text-xs">{company.company_name.charAt(0)}</span>
-                      </div>
-                    )}
-                    <span className="flex-1 truncate">{company.company_name}</span>
-                    {activeCompanyId === company.id && (
-                      <span className="h-2 w-2 bg-primary rounded-full ml-2" />
-                    )}
-                  </div>
+              {isLoadingCompanies ? (
+                <DropdownMenuItem disabled>
+                  <span className="animate-pulse">Loading companies...</span>
                 </DropdownMenuItem>
-              ))}
-              
-              <DropdownMenuSeparator className="bg-zinc-700" />
-              
-              {/* Create new company option */}
-              <DropdownMenuItem 
-                className="hover:bg-zinc-700 cursor-pointer text-primary"
-                onClick={handleCreateNewCompany}
-              >
-                <PlusCircle className="mr-2 h-4 w-4" />
-                <span>Create New Company</span>
-              </DropdownMenuItem>
+              ) : (
+                <>
+                  <DropdownMenuLabel className="text-xs text-zinc-400">
+                    Your Companies
+                  </DropdownMenuLabel>
+                  
+                  {/* List of companies */}
+                  {companies.length > 0 ? (
+                    companies.map(company => (
+                      <DropdownMenuItem 
+                        key={company.id}
+                        className={`hover:bg-zinc-700 cursor-pointer ${
+                          activeCompanyId === company.id ? 'bg-zinc-700/50' : ''
+                        }`}
+                        onClick={() => handleCompanySwitch(company)}
+                      >
+                        <div className="flex items-center w-full">
+                          {company.logo_url ? (
+                            <div className="h-5 w-5 rounded-full overflow-hidden mr-2">
+                              <Image 
+                                src={company.logo_url} 
+                                alt={company.company_name}
+                                width={20} 
+                                height={20}
+                                className="h-full w-full object-cover"
+                              />
+                            </div>
+                          ) : (
+                            <div className="h-5 w-5 rounded-full bg-zinc-700 mr-2 flex items-center justify-center">
+                              <span className="text-xs">{company.company_name.charAt(0)}</span>
+                            </div>
+                          )}
+                          <span className="flex-1 truncate">{company.company_name}</span>
+                          {activeCompanyId === company.id && (
+                            <span className="h-2 w-2 bg-primary rounded-full ml-2" />
+                          )}
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem disabled className="text-zinc-500">
+                      No companies found
+                    </DropdownMenuItem>
+                  )}
+                  
+                  <DropdownMenuSeparator className="bg-zinc-700" />
+                  
+                  {/* Create new company option */}
+                  <DropdownMenuItem 
+                    className="hover:bg-zinc-700 cursor-pointer text-primary"
+                    onClick={handleCreateNewCompany}
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    <span>Create New Company</span>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
           

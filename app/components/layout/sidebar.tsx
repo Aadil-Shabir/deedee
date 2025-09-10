@@ -104,7 +104,7 @@ function SidebarContent({
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [userName, setUserName] = useState("User");
   // const [companyName, setCompanyName] = useState("Goodboy Indonesia");
-  const [isLoadingCompanies, setIsLoadingCompanies] = useState(true);
+  const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
 
   const companyContext = useCompanyContext();
   const activeCompanyId = companyContext?.activeCompanyId;

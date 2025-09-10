@@ -1,11 +1,15 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
+import { createContext, useContext, useState, ReactNode, useCallback, useEffect } from "react";
+import { useUserCompanies } from "@/hooks/query-hooks/use-user-companies";
+import { useBusinessDetails, useCompanyIndustries } from "@/hooks/query-hooks/use-company-details";
+import { useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@/hooks/use-user";
 import { createClient } from "@/supabase/supabase";
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "@/components/ui/toast-provider";
 import { useRouter } from "next/navigation";
+
 
 // Types for company data
 interface CompanyBasicInfo {
@@ -119,6 +123,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   const { user, loading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
   
   // Core company state
   const [activeCompanyId, setActiveCompanyId] = useState<string | null>(null);
@@ -147,193 +152,113 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   
   // Industry form state
   const [selectedIndustryCategories, setSelectedIndustryCategories] = useState<Record<string, string[]>>({});
-  
-  // Update the loadCompanies function inside the useEffect
+
+
+  const {
+    data: allCompaniesData,
+    isLoading: companiesLoading,
+    error: companiesError
+  } = useUserCompanies(user?.id);
+
+
+  const {
+    data: businessDetailsData,
+    isLoading: businessDetailsLoading,
+    error: businessDetailsError
+  } = useBusinessDetails(activeCompanyId);
+
+
+  const {
+    data: industriesData,
+    isLoading: industriesLoading,
+    error: industriesError
+  } = useCompanyIndustries(activeCompanyId);
+
+
   useEffect(() => {
-    async function loadCompanies() {
-      if (!user || loading) {
-        console.log("Skipping company load: User not ready or still loading", { user, loading });
-        return;
-      }
+    setIsLoading(companiesLoading || businessDetailsLoading || industriesLoading);
+    
+    if (companiesError) {
+      toast({
+        title: "Error Loading Companies",
+        description: companiesError.message || "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
+    
+    if (businessDetailsError) {
+      toast({
+        title: "Error Loading Business Details",
+        description: businessDetailsError.message || "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
+    
+    if (industriesError) {
+      toast({
+        title: "Error Loading Industry Data",
+        description: industriesError.message || "Unknown error occurred",
+        variant: "destructive",
+      });
+    }
+    
+    if (allCompaniesData) {
+      setAllUserCompanies(allCompaniesData);
       
-      try {
-        setIsLoading(true);
-        console.log("Loading companies for user:", user.id);
-        const supabase = createClient();
-        
-        // First, check if user is actually authenticated with Supabase
-        const { data: authData, error: authError } = await supabase.auth.getUser();
-        if (authError) {
-          console.error("Authentication verification failed:", authError);
-          toast({
-            title: "Authentication Error",
-            description: "Please try logging in again",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        if (!authData?.user) {
-          console.error("No authenticated user found in Supabase");
-          return;
-        }
-        
-        // Get all companies for this user with more detailed error logging
-        const { data, error } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('owner_id', user.id);
-          
-        if (error) {
-          console.error('Error code:', error.code);
-          console.error('Error message:', error.message);
-          console.error('Error details:', error.details);
-          
-          // Handle specific error types
-          if (error.code === 'PGRST301') {
-            toast({
-              title: "Database Error",
-              description: "You don't have permission to access this data",
-              variant: "destructive",
-            });
-          } else if (error.code === '42P01') {
-            toast({
-              title: "Database Error",
-              description: "The companies table doesn't exist",
-              variant: "destructive",
-            });
-          } else {
-            toast({
-              title: "Error Loading Companies",
-              description: error.message || "Unknown error occurred",
-              variant: "destructive",
-            });
-          }
-          throw error;
-        }
-        
-        console.log("Successfully loaded companies:", data?.length || 0);
-        setAllUserCompanies(data || []);
-        
-        // If we have companies, set the first one as active by default
-        if (data && data.length > 0) {
-          console.log("Setting active company:", data[0].id);
-          setActiveCompanyId(data[0].id);
-        } else {
-          console.log("No companies found for this user");
-        }
-      } catch (error: any) {
-        console.error('Error loading companies:', error);
-        console.error('Error details:', {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          details: error.details,
-          code: error.code
-        });
-        
-        toast({
-          title: "Error Loading Companies",
-          description: error.message || "Please check console for details",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
+    
+      if (allCompaniesData.length > 0 && !activeCompanyId) {
+        console.log("Setting active company:", allCompaniesData[0].id);
+        setActiveCompanyId(allCompaniesData[0].id);
+      } else if (allCompaniesData.length === 0) {
+        console.log("No companies found for this user");
       }
     }
     
-    loadCompanies();
-  }, [user, loading, toast]);
-  
-  // Load company data when active company changes
+    
+    if (businessDetailsData) {
+      setHeadquarters(businessDetailsData.headquarters_location || "");
+      setIncorporationDate(businessDetailsData.incorporation_date || "");
+      setBusinessType(businessDetailsData.business_type || "");
+      setSalesType(businessDetailsData.sales_type || "");
+      setBusinessStage(businessDetailsData.business_stage || "");
+      setBusinessModel(businessDetailsData.business_model || "");
+    }
+    
+    
+    if (industriesData) {
+      setSelectedIndustryCategories(industriesData);
+    }
+    
+  }, [
+    allCompaniesData, 
+    companiesLoading, 
+    companiesError, 
+    businessDetailsData, 
+    businessDetailsLoading, 
+    businessDetailsError,
+    industriesData,
+    industriesLoading,
+    industriesError,
+    toast, 
+    activeCompanyId
+  ]);
+
+  // Set basic company info when active company changes
   useEffect(() => {
-    if (formMode === 'view' || formMode === 'create' || !activeCompanyId) return;
-    
-    const loadCompanyData = async () => {
-      if (!user) return;
-      
-      try {
-        setIsLoading(true);
-        const supabase = createClient();
-        
-        // Load basic info
-        const { data: basicData, error: basicError } = await supabase
-          .from('companies')
-          .select('*')
-          .eq('id', activeCompanyId)
-          .single();
-          
-        if (basicError) throw basicError;
-        
-        if (basicData) {
-          // Set basic info form state
-          setCompanyName(basicData.company_name || "");
-          setWebUrl(basicData.web_url || "");
-          setShortDescription(basicData.short_description || "");
-          setProductsCount(basicData.products_count?.toString() || "");
-          setFullDescription(basicData.full_description || "");
-          setCompanyLogo(basicData.logo_url);
-        }
-        
-        // Load business details
-        const { data: detailsData } = await supabase
-          .from('business_details')
-          .select('*')
-          .eq('company_id', activeCompanyId)
-          .single();
-          
-        if (detailsData) {
-          setHeadquarters(detailsData.headquarters_location || "");
-          setIncorporationDate(detailsData.incorporation_date || "");
-          setBusinessType(detailsData.business_type || "");
-          setSalesType(detailsData.sales_type || "");
-          setBusinessStage(detailsData.business_stage || "");
-          setBusinessModel(detailsData.business_model || "");
-        }
-        
-        // Load industry info - UPDATED CODE to match database schema
-        const { data: industriesData, error: industriesError } = await supabase
-          .from('company_industries')
-          .select('category_id, subcategory_id')
-          .eq('company_id', activeCompanyId);
-          
-        if (industriesError) {
-          console.error('Error loading industry data:', industriesError);
-        }
-        
-        if (industriesData && industriesData.length > 0) {
-          const categories: Record<string, string[]> = {};
-          
-          // Group subcategories by category
-          industriesData.forEach(item => {
-            if (item.category_id) {
-              if (!categories[item.category_id]) {
-                categories[item.category_id] = [];
-              }
-              
-              // Only add subcategory_id if it exists (it's a UUID)
-              if (item.subcategory_id) {
-                categories[item.category_id].push(item.subcategory_id);
-              }
-            }
-          });
-          
-          console.log('Loaded industry categories:', categories);
-          setSelectedIndustryCategories(categories);
-        } else {
-          console.log('No industry data found for company');
-          setSelectedIndustryCategories({});
-        }
-        
-      } catch (error) {
-        console.error('Error loading company data:', error);
-      } finally {
-        setIsLoading(false);
+    if (activeCompanyId && allCompaniesData) {
+      const activeCompany = allCompaniesData.find(company => company.id === activeCompanyId);
+      if (activeCompany) {
+        setCompanyName(activeCompany.company_name || "");
+        setWebUrl(activeCompany.web_url || "");
+        setShortDescription(activeCompany.short_description || "");
+        setProductsCount(activeCompany.products_count?.toString() || "");
+        setFullDescription(activeCompany.full_description || "");
+        setCompanyLogo(activeCompany.logo_url);
       }
-    };
-    
-    loadCompanyData();
-  }, [activeCompanyId, formMode, user]);
+    }
+  }, [activeCompanyId, allCompaniesData]);
+  
+  // Remove useEffect for company data loading, handled by React Query above
   
   // Methods to manage form state
   const resetForm = useCallback(() => {
@@ -397,7 +322,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     setActiveCompanyId(companyId);
     setCurrentStepIndex(0);
     setTemporaryId(null);
-  }, []);
+  }, [activeCompanyId]);
   
   const backToCompanyList = useCallback(() => {
     setFormMode('view');
@@ -632,29 +557,24 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     }
   }, [user, activeCompanyId, formMode, headquarters, incorporationDate, businessType, salesType, businessStage, businessModel, toast]);
   
-  // Refresh all company data
- const refreshCompanyData = useCallback(async () => {
+
+  const refreshCompanyData = useCallback(async () => {
     if (!user) return;
     
     try {
       setIsLoading(true);
-      const supabase = createClient();
-      
-      // Get all companies for this user
-      const { data, error } = await supabase
-        .from('companies')
-        .select('id, company_name, web_url, short_description, products_count, full_description, logo_url')
-        .eq('owner_id', user.id);
-        
-      if (error) throw error;
-      
-      setAllUserCompanies(data || []);
+
+      await queryClient.invalidateQueries({ queryKey: ["user-companies", user.id] });
+      if (activeCompanyId) {
+        await queryClient.invalidateQueries({ queryKey: ["business-details", activeCompanyId] });
+        await queryClient.invalidateQueries({ queryKey: ["company-industries", activeCompanyId] });
+      }
     } catch (error) {
       console.error('Error refreshing companies:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [user]);
+  }, [user, activeCompanyId, queryClient]);
   const submitIndustryInfo = useCallback(async (): Promise<boolean> => {
     if (!user) {
       toast({
