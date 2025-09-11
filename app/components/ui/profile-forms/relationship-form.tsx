@@ -79,6 +79,8 @@ export default function Relationships() {
     handleEditContact,
     refreshData,
     fetchInvestors, // This is now properly typed
+    isLoading: investorsLoading,
+    isDragging,
   } = useInvestorsData(user);
 
   const fetchTotals = () => {
@@ -145,7 +147,8 @@ export default function Relationships() {
               stages={stages}
               onDragEnd={handleDragEnd}
               onCardClick={handleCardClick}
-              isLoading={isLoading} // Add this prop
+              isLoading={investorsLoading}
+              isDragging={isDragging}
             />
           </TabsContent>
 

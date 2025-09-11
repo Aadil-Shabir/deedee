@@ -16,6 +16,7 @@ interface PitchTrackerTabProps {
   onDragEnd: (result: DropResult) => void;
   onCardClick: (investor: Investor) => void;
   isLoading?: boolean;
+  isDragging?: boolean;
 }
 
 // DraggableCard Component
@@ -32,7 +33,7 @@ const DraggableCard = forwardRef<
     {...provided.draggableProps}
     {...provided.dragHandleProps}
     onClick={onClick}
-    className="mb-3" // Add margin bottom to create spacing between cards
+    className="" // Add margin bottom to create spacing between cards
   >
     <Card
       className="bg-gray-800/50 p-4 rounded-lg border-gray-700 hover:bg-gray-800 transition-colors cursor-pointer"
@@ -92,11 +93,13 @@ const DroppableStages = ({
   stages,
   onCardClick,
   isLoading,
+  isDragging,
 }: {
   investors: Record<string, Investor[]>;
   stages: Array<{ id: string; label: string; count: number }>;
   onCardClick: (investor: Investor) => void;
   isLoading?: boolean;
+  isDragging?: boolean;
 }) => {
   if (isLoading) {
     return (
@@ -117,12 +120,12 @@ const DroppableStages = ({
   }
 
   return (
-    <div className="grid grid-cols-6 gap-4 md:grid-cols-6 sm:grid-cols-1 ">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-6 lg:grid-cols-6 ">
       {stages.map((stage) => (
         <Droppable 
           key={stage.id} 
           droppableId={stage.id}
-          isDropDisabled={false}
+          isDropDisabled={isDragging}
           isCombineEnabled={false}
           ignoreContainerClipping={false}
           direction={"vertical"}
@@ -132,11 +135,14 @@ const DroppableStages = ({
               ref={provided.innerRef}
               {...provided.droppableProps}
               className="space-y-4"
+              
             >
+              
               <div className="flex items-center justify-between">
                 <h3 className="font-semibold">{stage.label}</h3>
                 <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gray-800 text-xs">
                   {investors[stage.id]?.length || 0}
+                                      
                 </span>
               </div>
 <div className="flex flex-col space-y-1 min-h-[200px] 
@@ -150,6 +156,7 @@ const DroppableStages = ({
                       key={investor.id}
                       draggableId={investor.id}
                       index={index}
+                      isDragDisabled={isDragging}
                     >
                       {(provided) => (
                         // <div className="sm:flex-shrink-0 sm:w-64">
@@ -182,7 +189,8 @@ export function PitchTrackerTab({
   stages, 
   onDragEnd, 
   onCardClick,
-  isLoading = false // Provide default value
+  isLoading = false, // Provide default value
+  isDragging = false // Provide default value
 }: PitchTrackerTabProps) {
   // Ensure investors object has all the required keys
   const ensuredInvestors = React.useMemo(() => {
@@ -191,6 +199,7 @@ export function PitchTrackerTab({
     stages.forEach(stage => {
       if (!result[stage.id]) {
         result[stage.id] = [];
+        console.log(result[stage.id])
       }
     });
     return result;
@@ -198,12 +207,20 @@ export function PitchTrackerTab({
 
   return (
     <div className="relative">
+      {isDragging && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 rounded-lg">
+          <div className="bg-gray-900/90 backdrop-blur-sm rounded-lg p-4 flex items-center space-x-2">
+            <Loader2 className="w-5 h-5 text-profile-purple animate-spin" />
+            <span className="text-white text-sm">Moving investor...</span>
+          </div>
+        </div>
+      )}
       <HoverCard>
         <HoverCardTrigger asChild>
           <Button
             variant="ghost"
             size="icon"
-            className="absolute -top-12 right-0 rounded-full hover:bg-gray-800/50"
+            className="absolute -top-12 right-0 rounded-full hover:bg-gray-800/50 mt-3"
           >
             <Video className="w-7 h-7 text-profile-purple hover:text-profile-purple/90" />
           </Button>
@@ -237,6 +254,7 @@ export function PitchTrackerTab({
           stages={stages}
           onCardClick={onCardClick}
           isLoading={isLoading}
+          isDragging={isDragging}
         />
       </DragDropContext>
     </div>

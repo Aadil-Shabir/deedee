@@ -40,13 +40,13 @@ export function FundraisingInfo({onComplete}: {onComplete: ()=> void}) {
             Fundraising
           </h1>
           
-          {activeCompanyId && activeCompany ? (
+          {/* {activeCompanyId && activeCompany ? (
             <div className="flex items-center gap-2 bg-zinc-800/50 px-4 py-2 rounded-md">
               <Building className="h-5 w-5 text-primary" />
               <span className="text-zinc-300">Company:</span>
               <span className="font-medium text-white">{activeCompany.company_name || activeCompany.company_name}</span>
             </div>
-          ) : null}
+          ) : null} */}
         </div>
         
         <p className="text-zinc-400 max-w-3xl mb-4">

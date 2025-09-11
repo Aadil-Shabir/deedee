@@ -88,6 +88,8 @@ export default function InvestorFormFields({
           onPaidPercentageChange={onPastFundraisingChange.onPaidPercentageChange}
           onInvestorTypesChange={onPastFundraisingChange.onInvestorTypesChange}
           disabled={isReadOnly}
+          errors={formErrors}
+          touched={touchedFields}
         />
       )}
     </div>

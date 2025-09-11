@@ -13,6 +13,8 @@ interface PastFundraisingFieldsProps {
   onPaidPercentageChange: (value: number) => void;
   onInvestorTypesChange: (types: string[]) => void;
   disabled?: boolean;
+  errors?: Record<string, string | null>;
+  touched?: Record<string, boolean>;
 }
 
 export function PastFundraisingFields({
@@ -23,7 +25,12 @@ export function PastFundraisingFields({
   onPaidPercentageChange,
   onInvestorTypesChange,
   disabled = false,
+  errors = {},
+  touched = {},
 }: PastFundraisingFieldsProps) {
+  const getErrorMessage = (field: string) => {
+    return touched[field] && errors[field] ? errors[field] : null;
+  };
   const toggleInvestorType = (type: string) => {
     if (disabled) return;
 
@@ -50,6 +57,9 @@ export function PastFundraisingFields({
           placeholder="150,000"
         />
       </FormField>
+      {getErrorMessage("previousRaised") && (
+        <p className="text-sm text-red-500 -mt-2">{getErrorMessage("previousRaised")}</p>
+      )}
 
       <FormField
         id="paid-percentage"
@@ -72,6 +82,9 @@ export function PastFundraisingFields({
           onToggle={disabled ? () => {} : toggleInvestorType}
         />
       </FormField>
+      {getErrorMessage("investorTypes") && (
+        <p className="text-sm text-red-500 -mt-2">{getErrorMessage("investorTypes")}</p>
+      )}
     </div>
   );
 }

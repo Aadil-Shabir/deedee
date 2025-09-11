@@ -257,7 +257,7 @@ function SidebarContent({
 
   return (
     <div className={cn("h-full flex flex-col bg-[#121218]", className)}>
-      <div className="px-4 py-3">
+      <div className="mt-6 px-4 py-3">
         <div className="relative h-10 w-full">
           <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
           <input
@@ -298,7 +298,7 @@ function SidebarContent({
       <div className="lg:hidden px-2 pb-4 space-y-3 border-t border-zinc-800 pt-4">
         {/* Company Dropdown */}
         <div className="space-y-2">
-          <h4 className="text-xs text-zinc-500 uppercase tracking-wider px-3">Company</h4>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className="w-full flex items-center px-3 py-2 text-sm bg-zinc-800/50 rounded-md text-zinc-100">
@@ -377,17 +377,19 @@ function SidebarContent({
 
 
         <div className="space-y-2">
-          <h4 className="text-xs text-zinc-500 uppercase tracking-wider px-3">Actions</h4>
+
           <div className="flex flex-col gap-2">
             <Button 
-              className="w-full bg-primary hover:bg-primary/90 text-white justify-start "
+              variant="outline"
+              className="w-full hover:bg-primary/90 text-white justify-start "
               onClick={closeMobileMenu}
             >
               Upgrade
             </Button>
             <Link href={`/company/${activeCompanyId}`} target="_blank" rel="noopener noreferrer">
               <Button 
-                className="w-full bg-primary hover:bg-primary/90 text-white flex items-center justify-start gap-2"
+                variant="outline"
+                className="w-full hover:bg-primary/90 text-white flex items-center justify-start gap-2"
                 onClick={closeMobileMenu}
               >
                 <Eye className="h-4 w-4"/>

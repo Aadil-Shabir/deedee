@@ -38,14 +38,16 @@ export async function submitInvestorByCompanyName(
     // Get or verify the companyId
     let companyId = formData.companyId;
 
-    // If no company ID is provided, try to find by name
+    console.log("companyId:",companyId)
+
+    
     if (!companyId && formData.company) {
       // Look up company by name
       const { data: companyData } = await supabase
         .from("companies")
         .select("id")
         .eq("company_name", formData.company)
-        .eq("user_id", userId)
+        .eq("owner_id", userId)
         .single();
 
       if (companyData) {
@@ -56,7 +58,7 @@ export async function submitInvestorByCompanyName(
           .from("companies")
           .insert({
             company_name: formData.company,
-            user_id: userId,
+            owner_id: userId,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })

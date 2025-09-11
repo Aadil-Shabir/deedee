@@ -292,7 +292,7 @@ export function AddInvestorForm({
         <Button
           type="submit"
           disabled={isSubmittingState}
-          className="bg-profile-purple hover:bg-profile-purple/90"
+          className="bg-primary hover:bg-profile-purple/90"
         >
           {isSubmittingState ? (
             <>

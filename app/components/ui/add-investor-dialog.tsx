@@ -92,6 +92,7 @@ export function AddInvestorDialog({
   // Handle form submission
   const handleSubmit = useCallback(
     async (formData: InvestorFormData) => {
+      
       if (!user?.id) {
         toast.error("You must be logged in to add investors");
         return {

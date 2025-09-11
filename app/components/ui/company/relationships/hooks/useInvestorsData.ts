@@ -35,6 +35,7 @@ interface InvestorsDataResult {
   refreshData: () => Promise<void>;
   fetchInvestors: () => Promise<void>;
   isLoading: boolean;
+  isDragging: boolean;
 }
 
 export function useInvestorsData(user: User | null): InvestorsDataResult {
@@ -50,6 +51,7 @@ export function useInvestorsData(user: User | null): InvestorsDataResult {
   const [selectedInvestor, setSelectedInvestor] = useState<InvestorDetails | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   
   const queryClient = useQueryClient();
   const { activeCompanyId } = useCompanyContext();
@@ -291,13 +293,15 @@ export function useInvestorsData(user: User | null): InvestorsDataResult {
   
   // Handle drag and drop
   const handleDragEnd = async (result: DropResult) => {
-    if (!result.destination) return;
+    if (!result.destination || isDragging) return;
 
     const { draggableId, source, destination } = result;
     
     if (source.droppableId === destination.droppableId && source.index === destination.index) {
       return;
     }
+
+    setIsDragging(true);
 
     try {
       // Optimistic update: Update the UI immediately for better UX
@@ -342,7 +346,7 @@ export function useInvestorsData(user: User | null): InvestorsDataResult {
         setContacts(newContacts);
         
         // Call the backend to update the stage
-        updateInvestorStageMutation.mutate({
+        await updateInvestorStageMutation.mutateAsync({
           investorId: draggableId,
           stage: destination.droppableId
         });
@@ -351,8 +355,12 @@ export function useInvestorsData(user: User | null): InvestorsDataResult {
       toast.success(`Moved investor to ${destination.droppableId}`);
       
     } catch (error: any) {
+      
       console.error('Error updating investor stage:', error);
       toast.error('Failed to update investor stage');
+    
+    } finally {
+      setIsDragging(false);
     }
   };
 
@@ -426,6 +434,7 @@ export function useInvestorsData(user: User | null): InvestorsDataResult {
     handleEditContact,
     refreshData,
     fetchInvestors,
-    isLoading: isInvestorsLoading
+    isLoading: isInvestorsLoading,
+    isDragging
   };
 }
