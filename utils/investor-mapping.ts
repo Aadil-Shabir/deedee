@@ -12,15 +12,18 @@ export function mapFormDataToDatabase(
   const numShares = formData.numShares ? parseFloat(formData.numShares) : null;
   const sharePrice = formData.sharePrice ? parseFloat(formData.sharePrice) : null;
   
+
+  
   return {
+    
     ...(formData.id ? { id: formData.id } : {}),
     user_id: userId,
     company_id: companyId,
     first_name: formData.firstName,
     last_name: formData.lastName,
-    company: formData.companyName,
+    company: formData.company,
     email: formData.email || null,
-    type: formData.investorType || null,
+    type: formData.type || null,
     stage: formData.stage || null,
     country: formData.country || null,
     city: formData.city || null,
@@ -29,6 +32,9 @@ export function mapFormDataToDatabase(
     investment_type: formData.investmentType || null,
     interest_rate: interestRate,
     valuation: valuation,
+    previous_raised:formData.previousRaised,
+    paid_percentage:formData.paidPercentage,
+    investor_types:formData.investorTypes,
     num_shares: numShares,
     share_price: sharePrice,
     updated_at: new Date().toISOString()
@@ -41,9 +47,9 @@ export function mapDatabaseToFormData(dbData: DatabaseInvestorData): InvestorFor
     firstName: dbData.first_name,
     lastName: dbData.last_name,
     companyId: dbData.company_id,
-    companyName: dbData.company || "",
+    company: dbData.company || "",
     email: dbData.email || "",
-    investorType: dbData.type || "",
+    type: dbData.type || "",
     stage: dbData.stage || "interested",
     country: dbData.country || "",
     city: dbData.city || "",
@@ -53,7 +59,13 @@ export function mapDatabaseToFormData(dbData: DatabaseInvestorData): InvestorFor
     interestRate: dbData.interest_rate?.toString() || "",
     valuation: dbData.valuation?.toString() || "",
     numShares: dbData.num_shares?.toString() || "",
-    sharePrice: dbData.share_price?.toString() || ""
+    sharePrice: dbData.share_price?.toString() || "",
+    previousRaised:dbData.previous_raised.toString() || "",
+    paidPercentage:dbData.paid_percentage.toString() || "",
+    investorTypes:Array.isArray(dbData.investor_types)
+  ? dbData.investor_types
+  : [],
+
   };
 }
 
@@ -62,7 +74,8 @@ export function mapContactToInvestorForm(contact: any): Partial<InvestorFormData
     return {
       firstName: "",
       lastName: "",
-      companyName: ""
+      company: "",
+      type:""
     };
   }
   
@@ -71,18 +84,21 @@ export function mapContactToInvestorForm(contact: any): Partial<InvestorFormData
     firstName: contact.first_name || contact.full_name?.split(' ')[0] || "",
     lastName: contact.last_name || 
       (contact.full_name?.split(' ').length > 1 ? contact.full_name?.split(' ').slice(1).join(' ') : ""),
-    companyName: contact.company || contact.company_name || "",
+    company: contact.company || contact.company_name || "",
     email: contact.email || "",
-    investorType: contact.investor_type || "",
+    type: contact.investor_type ||contact.type || "",
     stage: contact.stage?.toLowerCase() || "interested",
     country: contact.country || contact.hq_geography || "",
-    city: contact.city || "",
+    city: contact.city || contact.hq_city || "",
     isInvestment: false,
     amount: "",
     investmentType: "equity",
     interestRate: "",
     valuation: "",
     numShares: "",
-    sharePrice: ""
+    sharePrice: "",
+    previousRaised:contact.previous_raised || "",
+    paidPercentage:contact.paid_percentage || "",
+    investorTypes:contact.investor_types || []
   };
 }

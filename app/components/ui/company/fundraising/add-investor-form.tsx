@@ -13,6 +13,7 @@ interface AddInvestorFormProps {
   onCancel: () => void;
   initialData?: Partial<InvestorFormData>;
   isSubmitting?: boolean;
+  isEditMode?:boolean;
 }
 
 export function AddInvestorForm({
@@ -20,13 +21,14 @@ export function AddInvestorForm({
   onCancel,
   initialData = {},
   isSubmitting = false,
+  isEditMode = false
 }: AddInvestorFormProps) {
   // Form validation state
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [isSubmittingState, setIsSubmitting] = useState<boolean>(false);
-
+  
   // Initialize form data with defaults and initial values
   const [formData, setFormData] = useState<InvestorFormData>({
     firstName: "",
@@ -34,7 +36,7 @@ export function AddInvestorForm({
     company: "",
     companyId: "",
     email: "",
-    type: "",
+    type:initialData.type || "",
     stage: "interested",
     country: "",
     city: "",
@@ -297,10 +299,10 @@ export function AddInvestorForm({
           {isSubmittingState ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
+              {isEditMode ? "Updating..." : "Saving..."}
             </>
           ) : (
-            "Save"
+            isEditMode ? "Update" : "Save"
           )}
         </Button>
       </div>

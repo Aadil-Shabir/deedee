@@ -218,6 +218,7 @@ export function useInvestorsData(user: User | null): InvestorsDataResult {
       
       // Add fundraising investors to contacts
       fundraisingInvestors.forEach(investor => {
+      
         newContacts.push({
           id: investor.id,
           company_name: investor.company || '',
@@ -238,7 +239,13 @@ export function useInvestorsData(user: User | null): InvestorsDataResult {
           investments: '',
           investment_type: investor.investment_type || '',
           investor_relations: '',
-          funding_stage: ''
+          funding_stage: '',
+          hq_city:investor.city,
+          previous_raised:investor.previous_raised,
+          paid_percentage:investor.paid_percentage,
+          investor_types:investor.investor_types
+
+
         });
       });
       

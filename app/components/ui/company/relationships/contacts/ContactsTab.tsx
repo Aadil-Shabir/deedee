@@ -28,7 +28,7 @@ export function ContactsTab({
   onAddInvestor // Added to match expected prop
 }: ContactsTabProps) {
   const { user } = useUser();
-  
+   
   const {
     deleteDialogOpen,
     setDeleteDialogOpen,
@@ -41,10 +41,11 @@ export function ContactsTab({
     handleChangeToLost,
     selectedContacts,
     setSelectedContacts,
+    selectedContact,
+    setSelectedContact
   } = useContactsState(contacts);
 
   const [addInvestorOpen, setAddInvestorOpen] = useState(false);
-  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [isDialogBusy, setIsDialogBusy] = useState(false);
   
   // Reset dialog state completely when dialog is closed
@@ -141,8 +142,8 @@ export function ContactsTab({
         onSort={handleSort}
         onEditClick={handleEditContact}
         onDeleteClick={(contact) => {
-          setSelectedContact(contact);
-          setDeleteDialogOpen(true);
+         setSelectedContact(contact);
+         setDeleteDialogOpen(true);
         }}
         selectedContacts={selectedContacts}
         setSelectedContacts={setSelectedContacts}

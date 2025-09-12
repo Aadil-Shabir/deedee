@@ -30,6 +30,8 @@ export function AddInvestorDialog({
   onAdd,
   selectedContact,
 }: AddInvestorDialogProps) {
+
+  const isEditMode = !!selectedContact;
   const { user } = useUser();
   const { activeCompanyId } = useCompanyContext();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -72,7 +74,9 @@ export function AddInvestorDialog({
       if (selectedContact && open) {
         setIsLoading(true);
         try {
+          
           const data = await mapContactToInvestorForm(selectedContact);
+          console.log("I am called in load data :", selectedContact,"and thi is:",data)
           setInitialFormData(data);
         } catch (error) {
           console.error("Error loading contact data:", error);
@@ -191,6 +195,7 @@ export function AddInvestorDialog({
             onCancel={handleCancel}
             initialData={initialFormData}
             isSubmitting={isSubmitting}
+            isEditMode={isEditMode}
           />
         )}
       </DialogContent>

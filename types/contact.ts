@@ -53,6 +53,7 @@ export interface Contact {
     secondary_contact_function?: string;
     secondary_contact_mobile?: string;
     relationship_status?: string;
+    
 }
 
 export interface InvestorFormData {
