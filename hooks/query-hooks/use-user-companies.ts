@@ -29,12 +29,20 @@ async function fetchUserCompanies(userId: string): Promise<CompanyBasicInfo[]> {
     throw new Error("Authentication required");
   }
 
+  const start = performance.now();
 
   const { data, error } = await supabase
     .from('companies')
     .select('*')
     .eq('owner_id', userId)
     .order('created_at', { ascending: false });
+
+
+
+
+    const end = performance.now();
+      console.log(`Supabase fetch time: ${(end - start).toFixed(2)} ms`);
+
     
   if (error) {
     console.error('Error code:', error.code);

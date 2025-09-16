@@ -241,6 +241,9 @@ export function AddInvestorForm({
           document
             .getElementById("email")
             ?.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                return result;
+
         } else {
           // Handle other errors
           setSubmissionError(result.error || "Failed to save investor data");
@@ -302,7 +305,7 @@ export function AddInvestorForm({
               {isEditMode ? "Updating..." : "Saving..."}
             </>
           ) : (
-            isEditMode ? "Update" : "Save"
+            isEditMode ? "Update" : "Add"
           )}
         </Button>
       </div>

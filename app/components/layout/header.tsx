@@ -166,7 +166,6 @@ export function Header() {
       return activeCompany.company_name;
     }
     if (companies.length === 0 && !isLoadingCompanies) {
-      console.log("this No Company block is called:",companies.length,companies)
       return "No Company";
       
     }
@@ -175,7 +174,7 @@ export function Header() {
   
   const companyName = getCompanyDisplayName();
 
-  console.log(activeCompany,"ative_company in header")
+ 
 
   return (
     <header className="bg-[#121218] border-b border-zinc-800">

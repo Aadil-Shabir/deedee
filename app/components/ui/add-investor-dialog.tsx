@@ -117,27 +117,29 @@ export function AddInvestorDialog({
         const enhancedFormData = {
           ...formData,
           companyId: activeCompanyId,
+        ...(selectedContact?.id ? { id: selectedContact.id } : {}),
         };
 
         // Use the server action that handles company lookup by name
-        const response = await submitInvestorByCompanyName(
-          enhancedFormData,
-          user.id
-        );
+        // const response = await submitInvestorByCompanyName(
+        //   enhancedFormData,
+        //   user.id
+        // );
+        
 
-        if (!response.success) {
-          throw new Error(response.error || "Failed to save investor");
-        }
+        // if (!response.success) {
+        //   throw new Error(response.error || "Failed to save investor");
+        // }
 
         // Show success message
-        toast.success(
-          selectedContact?.id
-            ? "Investor updated successfully"
-            : "Investor added successfully"
-        );
+        // toast.success(
+        //   selectedContact?.id
+        //     ? "Investor updated successfully"
+        //     : "Investor added successfully"
+        // );
 
         // Call the onAdd callback with the complete form data
-        onAdd(formData);
+        onAdd(enhancedFormData);
 
         // Close the dialog
         onOpenChange(false);
