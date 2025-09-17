@@ -32,6 +32,11 @@ export function BusinessDetails({ onNext, onBack }: BusinessDetailsProps = {}) {
     salesType,
     businessStage,
     businessModel,
+    purpose,
+    revenue,
+    growthRate,
+    ask,
+    ebitda,
     
     // Setters
     setHeadquarters,
@@ -40,6 +45,11 @@ export function BusinessDetails({ onNext, onBack }: BusinessDetailsProps = {}) {
     setSalesType,
     setBusinessStage,
     setBusinessModel,
+    setPurpose,
+    setRevenue,
+    setGrowthRate,
+    setAsk,
+    setEbitda,
     
     // Actions
     submitBusinessDetails,
@@ -199,6 +209,74 @@ export function BusinessDetails({ onNext, onBack }: BusinessDetailsProps = {}) {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-zinc-200">
+                  Purpose
+                </label>
+                <Select value={purpose} onValueChange={setPurpose}>
+                  <SelectTrigger className="bg-zinc-800/50 border-zinc-700">
+                    <SelectValue placeholder="Select purpose" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="acquisition">Acquisition</SelectItem>
+                    <SelectItem value="fundraising">Fundraising</SelectItem>
+                    <SelectItem value="both">Both</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-zinc-200">
+                  Revenue
+                </label>
+                <Input
+                  type="number"
+                  value={revenue}
+                  onChange={(e) => setRevenue(e.target.value)}
+                  placeholder="Enter revenue amount"
+                  className="bg-zinc-800/50 border-zinc-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-zinc-200">
+                  Growth Rate (%)
+                </label>
+                <Input
+                  type="number"
+                  value={growthRate}
+                  onChange={(e) => setGrowthRate(e.target.value)}
+                  placeholder="Enter growth rate"
+                  className="bg-zinc-800/50 border-zinc-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-zinc-200">
+                  Ask
+                </label>
+                <Input
+                  type="number"
+                  value={ask}
+                  onChange={(e) => setAsk(e.target.value)}
+                  placeholder="Enter ask amount"
+                  className="bg-zinc-800/50 border-zinc-700"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-zinc-200">
+                  EBITDA
+                </label>
+                <Input
+                  type="number"
+                  value={ebitda}
+                  onChange={(e) => setEbitda(e.target.value)}
+                  placeholder="Enter EBITDA amount"
+                  className="bg-zinc-800/50 border-zinc-700"
+                />
               </div>
             </div>
           </div>

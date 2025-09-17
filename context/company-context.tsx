@@ -29,6 +29,11 @@ interface BusinessDetails {
   sales_type: string | null;
   business_stage: string | null;
   business_model: string | null;
+  purpose: string | null;
+  revenue: string | null;
+  growth_rate: string | null;
+  ask: string | null;
+  ebitda: string | null;
 }
 
 interface IndustryInfo {
@@ -63,6 +68,11 @@ interface CompanyContextType {
   salesType: string;
   businessStage: string;
   businessModel: string;
+  purpose: string;
+  revenue: string;
+  growthRate: string;
+  ask: string;
+  ebitda: string;
   
   // Industry info
   selectedIndustryCategories: Record<string, string[]>;
@@ -96,6 +106,11 @@ interface CompanyContextType {
   setSalesType: (type: string) => void;
   setBusinessStage: (stage: string) => void;
   setBusinessModel: (model: string) => void;
+  setPurpose: (purpose: string) => void;
+  setRevenue: (revenue: string) => void;
+  setGrowthRate: (growthRate: string) => void;
+  setAsk: (ask: string) => void;
+  setEbitda: (ebitda: string) => void;
   
   // Industry form actions
   setSelectedIndustryCategories: (categories: Record<string, string[]>) => void;
@@ -149,6 +164,11 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   const [salesType, setSalesType] = useState("");
   const [businessStage, setBusinessStage] = useState("");
   const [businessModel, setBusinessModel] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [revenue, setRevenue] = useState("");
+  const [growthRate, setGrowthRate] = useState("");
+  const [ask, setAsk] = useState("");
+  const [ebitda, setEbitda] = useState("");
   
   // Industry form state
   const [selectedIndustryCategories, setSelectedIndustryCategories] = useState<Record<string, string[]>>({});
@@ -205,8 +225,8 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     if (allCompaniesData) {
       setAllUserCompanies(allCompaniesData);
       
-    
-      if (allCompaniesData.length > 0 && !activeCompanyId) {
+      // Only set active company if we're not in create mode and no company is currently active
+      if (allCompaniesData.length > 0 && !activeCompanyId && formMode !== 'create') {
         console.log("Setting active company:", allCompaniesData[0].id);
         setActiveCompanyId(allCompaniesData[0].id);
       } else if (allCompaniesData.length === 0) {
@@ -222,6 +242,11 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       setSalesType(businessDetailsData.sales_type || "");
       setBusinessStage(businessDetailsData.business_stage || "");
       setBusinessModel(businessDetailsData.business_model || "");
+      setPurpose(businessDetailsData.purpose || "");
+      setRevenue(businessDetailsData.revenue?.toString() || "");
+      setGrowthRate(businessDetailsData.growth_rate?.toString() || "");
+      setAsk(businessDetailsData.ask?.toString() || "");
+      setEbitda(businessDetailsData.ebitda?.toString() || "");
     }
     
     
@@ -240,12 +265,13 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     industriesLoading,
     industriesError,
     toast, 
-    activeCompanyId
+    activeCompanyId,
+    formMode
   ]);
 
-  // Set basic company info when active company changes
+  // Set basic company info when active company changes (only in edit mode)
   useEffect(() => {
-    if (activeCompanyId && allCompaniesData) {
+    if (activeCompanyId && allCompaniesData && formMode === 'edit') {
       const activeCompany = allCompaniesData.find(company => company.id === activeCompanyId);
       if (activeCompany) {
         setCompanyName(activeCompany.company_name || "");
@@ -256,7 +282,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
         setCompanyLogo(activeCompany.logo_url);
       }
     }
-  }, [activeCompanyId, allCompaniesData]);
+  }, [activeCompanyId, allCompaniesData, formMode]);
   
   // Remove useEffect for company data loading, handled by React Query above
   
@@ -277,6 +303,11 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     setSalesType("");
     setBusinessStage("");
     setBusinessModel("");
+    setPurpose("");
+    setRevenue("");
+    setGrowthRate("");
+    setAsk("");
+    setEbitda("");
     
     // Reset industry info
     setSelectedIndustryCategories({});
@@ -284,6 +315,12 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   
   // Methods to manage company state
   const createNewCompany = useCallback(() => {
+    // First set form mode to create to prevent data population
+    setFormMode('create');
+    
+    // Clear active company ID to prevent data population
+    setActiveCompanyId(null);
+    
     // Reset all form data
     setCompanyName('');
     setWebUrl('');
@@ -298,14 +335,15 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     setSalesType('');
     setBusinessStage('');
     setBusinessModel('');
+    setPurpose('');
+    setRevenue('');
+    setGrowthRate('');
+    setAsk('');
+    setEbitda('');
     
     setSelectedIndustryCategories({});
     
-    // Clear active company ID
-    setActiveCompanyId(null);
-    
-    // Set form mode and current step
-    setFormMode('create');
+    // Set current step to beginning
     setCurrentStepIndex(0);
     
     // Navigate to profile page if needed
@@ -317,12 +355,33 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   }, []);
   
   const editCompany = useCallback((companyId: string) => {
-    console.log(`Editing company with ID: ${companyId}`, activeCompanyId);
+    console.log(`Editing company with ID: ${companyId}`);
+    
+    // Set form mode to edit first
     setFormMode('edit');
+    
+    // Set the active company ID
     setActiveCompanyId(companyId);
+    
+    // Reset to first step
     setCurrentStepIndex(0);
+    
+    // Clear temporary ID
     setTemporaryId(null);
-  }, [activeCompanyId]);
+    
+    // Find and populate the company data immediately
+    if (allUserCompanies.length > 0) {
+      const targetCompany = allUserCompanies.find(company => company.id === companyId);
+      if (targetCompany) {
+        setCompanyName(targetCompany.company_name || "");
+        setWebUrl(targetCompany.web_url || "");
+        setShortDescription(targetCompany.short_description || "");
+        setProductsCount(targetCompany.products_count?.toString() || "");
+        setFullDescription(targetCompany.full_description || "");
+        setCompanyLogo(targetCompany.logo_url);
+      }
+    }
+  }, [allUserCompanies]);
   
   const backToCompanyList = useCallback(() => {
     setFormMode('view');
@@ -532,7 +591,12 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
           business_type: businessType,
           sales_type: salesType,
           business_stage: businessStage,
-          business_model: businessModel
+          business_model: businessModel,
+          purpose: purpose,
+          revenue: revenue ? parseFloat(revenue) : null,
+          growth_rate: growthRate ? parseFloat(growthRate) : null,
+          ask: ask ? parseFloat(ask) : null,
+          ebitda: ebitda ? parseFloat(ebitda) : null
         });
         
       if (error) throw error;
@@ -555,7 +619,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, activeCompanyId, formMode, headquarters, incorporationDate, businessType, salesType, businessStage, businessModel, toast]);
+  }, [user, activeCompanyId, formMode, headquarters, incorporationDate, businessType, salesType, businessStage, businessModel, purpose, revenue, growthRate, ask, ebitda, toast]);
   
 
   const refreshCompanyData = useCallback(async () => {
@@ -733,6 +797,11 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       salesType,
       businessStage,
       businessModel,
+      purpose,
+      revenue,
+      growthRate,
+      ask,
+      ebitda,
       
       // Industry info
       selectedIndustryCategories,
@@ -766,6 +835,11 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       setSalesType,
       setBusinessStage,
       setBusinessModel,
+      setPurpose,
+      setRevenue,
+      setGrowthRate,
+      setAsk,
+      setEbitda,
       
       // Industry form actions
       setSelectedIndustryCategories,

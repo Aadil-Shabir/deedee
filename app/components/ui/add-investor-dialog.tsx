@@ -76,7 +76,7 @@ export function AddInvestorDialog({
         try {
           
           const data = await mapContactToInvestorForm(selectedContact);
-          console.log("I am called in load data :", selectedContact,"and thi is:",data)
+          
           setInitialFormData(data);
         } catch (error) {
           console.error("Error loading contact data:", error);
@@ -121,22 +121,24 @@ export function AddInvestorDialog({
         };
 
         // Use the server action that handles company lookup by name
-        // const response = await submitInvestorByCompanyName(
-        //   enhancedFormData,
-        //   user.id
-        // );
+       
+        const response = await submitInvestorByCompanyName(
+          enhancedFormData,
+          user.id
+        );
         
 
-        // if (!response.success) {
-        //   throw new Error(response.error || "Failed to save investor");
-        // }
+        if (!response.success) {
+          throw new Error(response.error || "Failed to save investor");
+        }
 
         // Show success message
-        // toast.success(
-        //   selectedContact?.id
-        //     ? "Investor updated successfully"
-        //     : "Investor added successfully"
-        // );
+        toast.success(
+          selectedContact?.id
+            ? "Investor updated successfully"
+            : "Investor added successfully"
+        );
+      
 
         // Call the onAdd callback with the complete form data
         onAdd(enhancedFormData);

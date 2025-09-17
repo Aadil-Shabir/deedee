@@ -126,7 +126,7 @@ export function InvestorList({
         onOpenChange={setDialogOpen}
         onAdd={(investor) => {
           // Call the provided onAddInvestor callback
-          onAddInvestor(investor);
+          // onAddInvestor(investor);
           
           // Refresh totals if needed
           if (onFetchTotals) {
