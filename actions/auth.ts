@@ -23,6 +23,8 @@ export async function login({email, password}: {email: string, password: string}
     
     revalidatePath('/', 'layout')
     
+    // Redirect based on the actual role (founder or investor)
+    // regardless of their intent (seller/buyer vs founder/investor)
     if (role === 'founder') {
       return { success: true, redirectTo: '/company/basecamp' }
     } else if (role === 'investor') {
@@ -40,23 +42,30 @@ export async function signup({
   password, 
   firstName, 
   lastName, 
-  role
+  role,
+  
 }: {
   email: string, 
   password: string, 
   firstName: string, 
   lastName: string, 
-  role: 'founder' | 'investor'
+  role: 'founder' | 'investor' | 'seller' | 'buyer',
+  
 }) {
   const supabase = await createClient()
 
   try {
+    // Map the selected role to the actual role assignment
+    // Founder/Seller -> 'founder', Investor/Buyer -> 'investor'
+    const actualRole = (role === 'founder' || role === 'seller') ? 'founder' : 'investor';
+    
     // Prepare user metadata
     const userMetadata = {
       first_name: firstName,
       last_name: lastName,
       full_name: `${firstName} ${lastName}`,
-      role: role,
+      role: actualRole,
+      intent: role, 
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       account_status: 'pending_verification'
@@ -84,7 +93,7 @@ export async function signup({
         .insert([
           { 
             user_id: userId, 
-            role: role,
+            role: actualRole,
             // created_at: new Date().toISOString() 
           },
         ])
@@ -95,7 +104,51 @@ export async function signup({
         return { success: false, error: roleError.message }
       }
 
+      
+
+      
       // Could also insert additional user profile data in a profile table if needed
+      if (role === 'founder' || role === 'seller') {
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: userId,
+              first_name:firstName,
+              last_name:lastName,
+              email,
+              intent:role,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+
+        if (profileError) {
+          console.log('Profile error:', profileError);
+          return { success: false, error: profileError.message }
+        }
+      } else if (role === 'investor' || role === 'buyer') {
+        
+        const { error: investorProfileError } = await supabase
+          .from('investor_profiles')
+          .insert([
+            {
+              id: userId,
+              first_name:firstName,
+              last_name:lastName,
+              email,
+              intent:role, 
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            }
+          ])
+
+        if (investorProfileError) {
+          console.log('Investor profile error:', investorProfileError);
+          return { success: false, error: investorProfileError.message }
+        }
+      }
       
       revalidatePath('/', 'layout')
       

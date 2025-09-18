@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 // import { CompanySwitcher } from "../company-switcher";
+import { PurposeSelection } from "./purpose-selection";
 import { BasicInfo } from "./basic-info";
 import { BusinessDetails } from "./business-details";
 import { IndustryInfo } from "./industry-info";
@@ -14,9 +15,10 @@ import { CompanySwitcher } from "../../company-switcher";
 
 // Define step structure for better type safety
 const STEPS = [
-  { id: 1, label: "Basic Info" },
-  { id: 2, label: "Business Details" },
-  { id: 3, label: "Industry" }
+  { id: 1, label: "Purpose" },
+  { id: 2, label: "Basic Info" },
+  { id: 3, label: "Business Details" },
+  { id: 4, label: "Industry" }
 ];
 
 export default function CompanyProfilePage({onComplete}: {onComplete: ()=> void}) {
@@ -96,10 +98,11 @@ export default function CompanyProfilePage({onComplete}: {onComplete: ()=> void}
             />
           </div>
 
-          {/* Form steps - Match currentStepIndex (0, 1, 2) to the appropriate form */}
-          {currentStepIndex === 0 && <BasicInfo />}
-          {currentStepIndex === 1 && <BusinessDetails />}
-          {currentStepIndex === 2 && <IndustryInfo />}
+          {/* Form steps - Match currentStepIndex (0, 1, 2, 3) to the appropriate form */}
+          {currentStepIndex === 0 && <PurposeSelection />}
+          {currentStepIndex === 1 && <BasicInfo />}
+          {currentStepIndex === 2 && <BusinessDetails />}
+          {currentStepIndex === 3 && <IndustryInfo />}
         </>
       )}
     </div>

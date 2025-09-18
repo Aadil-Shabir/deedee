@@ -6,6 +6,7 @@ export interface CompanyData {
   full_description?: string | null;
   logo_url?: string | null;
   cover_image_url?: string | null;
+  purpose?: string | null;
   created_at: string;
   updated_at: string;
 }

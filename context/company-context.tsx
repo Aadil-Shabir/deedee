@@ -20,6 +20,7 @@ interface CompanyBasicInfo {
   products_count: number | null;
   full_description: string | null;
   logo_url: string | null;
+  purpose: string | null;
 }
 
 interface BusinessDetails {
@@ -29,11 +30,6 @@ interface BusinessDetails {
   sales_type: string | null;
   business_stage: string | null;
   business_model: string | null;
-  purpose: string | null;
-  revenue: string | null;
-  growth_rate: string | null;
-  ask: string | null;
-  ebitda: string | null;
 }
 
 interface IndustryInfo {
@@ -60,6 +56,7 @@ interface CompanyContextType {
   productsCount: string;
   fullDescription: string;
   companyLogo: string | null;
+  purpose: string;
   
   // Business details
   headquarters: string;
@@ -68,11 +65,6 @@ interface CompanyContextType {
   salesType: string;
   businessStage: string;
   businessModel: string;
-  purpose: string;
-  revenue: string;
-  growthRate: string;
-  ask: string;
-  ebitda: string;
   
   // Industry info
   selectedIndustryCategories: Record<string, string[]>;
@@ -97,6 +89,7 @@ interface CompanyContextType {
   setProductsCount: (count: string) => void;
   setFullDescription: (desc: string) => void;
   setCompanyLogo: (logo: string | null) => void;
+  setPurpose: (purpose: string) => void;
   uploadLogo: (file: File) => Promise<string | null>;
   
   // Business details form setters
@@ -106,11 +99,6 @@ interface CompanyContextType {
   setSalesType: (type: string) => void;
   setBusinessStage: (stage: string) => void;
   setBusinessModel: (model: string) => void;
-  setPurpose: (purpose: string) => void;
-  setRevenue: (revenue: string) => void;
-  setGrowthRate: (growthRate: string) => void;
-  setAsk: (ask: string) => void;
-  setEbitda: (ebitda: string) => void;
   
   // Industry form actions
   setSelectedIndustryCategories: (categories: Record<string, string[]>) => void;
@@ -156,6 +144,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   const [productsCount, setProductsCount] = useState("");
   const [fullDescription, setFullDescription] = useState("");
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const [purpose, setPurpose] = useState("");
   
   // Business details form state
   const [headquarters, setHeadquarters] = useState("");
@@ -164,11 +153,6 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   const [salesType, setSalesType] = useState("");
   const [businessStage, setBusinessStage] = useState("");
   const [businessModel, setBusinessModel] = useState("");
-  const [purpose, setPurpose] = useState("");
-  const [revenue, setRevenue] = useState("");
-  const [growthRate, setGrowthRate] = useState("");
-  const [ask, setAsk] = useState("");
-  const [ebitda, setEbitda] = useState("");
   
   // Industry form state
   const [selectedIndustryCategories, setSelectedIndustryCategories] = useState<Record<string, string[]>>({});
@@ -242,11 +226,6 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       setSalesType(businessDetailsData.sales_type || "");
       setBusinessStage(businessDetailsData.business_stage || "");
       setBusinessModel(businessDetailsData.business_model || "");
-      setPurpose(businessDetailsData.purpose || "");
-      setRevenue(businessDetailsData.revenue?.toString() || "");
-      setGrowthRate(businessDetailsData.growth_rate?.toString() || "");
-      setAsk(businessDetailsData.ask?.toString() || "");
-      setEbitda(businessDetailsData.ebitda?.toString() || "");
     }
     
     
@@ -280,6 +259,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
         setProductsCount(activeCompany.products_count?.toString() || "");
         setFullDescription(activeCompany.full_description || "");
         setCompanyLogo(activeCompany.logo_url);
+        setPurpose(activeCompany.purpose || "");
       }
     }
   }, [activeCompanyId, allCompaniesData, formMode]);
@@ -295,6 +275,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     setProductsCount("");
     setFullDescription("");
     setCompanyLogo(null);
+    setPurpose("");
     
     // Reset business details
     setHeadquarters("");
@@ -303,11 +284,6 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     setSalesType("");
     setBusinessStage("");
     setBusinessModel("");
-    setPurpose("");
-    setRevenue("");
-    setGrowthRate("");
-    setAsk("");
-    setEbitda("");
     
     // Reset industry info
     setSelectedIndustryCategories({});
@@ -328,6 +304,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     setProductsCount('');
     setFullDescription('');
     setCompanyLogo(null);
+    setPurpose('');
     
     setHeadquarters('');
     setIncorporationDate('');
@@ -335,11 +312,6 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     setSalesType('');
     setBusinessStage('');
     setBusinessModel('');
-    setPurpose('');
-    setRevenue('');
-    setGrowthRate('');
-    setAsk('');
-    setEbitda('');
     
     setSelectedIndustryCategories({});
     
@@ -379,6 +351,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
         setProductsCount(targetCompany.products_count?.toString() || "");
         setFullDescription(targetCompany.full_description || "");
         setCompanyLogo(targetCompany.logo_url);
+        setPurpose(targetCompany.purpose || "");
       }
     }
   }, [allUserCompanies]);
@@ -390,10 +363,10 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
   
   const nextStep = useCallback(() => {
     setCurrentStepIndex(prevIndex => {
-      // Allow stepping to 0, 1, or 2 (for a 3-step process)
+      // Allow stepping to 0, 1, 2, or 3 (for a 4-step process)
       const nextIndex = prevIndex + 1;
       console.log(`Moving from step ${prevIndex} to ${nextIndex}`);
-      return Math.min(nextIndex, 2); // Cap at 2 (0-indexed for 3 steps)
+      return Math.min(nextIndex, 3); // Cap at 3 (0-indexed for 4 steps)
     });
   }, []);
 
@@ -486,6 +459,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
         products_count: number;
         full_description: string;
         logo_url: string | null;
+        purpose: string;
         updated_at: string;
         id?: string;  // Optional id property
       } = {
@@ -496,6 +470,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
         products_count: parseInt(productsCount || "0"),
         full_description: fullDescription,
         logo_url: companyLogo,
+        purpose: purpose,
         updated_at: new Date().toISOString()
       };
       
@@ -543,7 +518,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, companyName, webUrl, shortDescription, productsCount, fullDescription, companyLogo, formMode, activeCompanyId, toast]);
+  }, [user, companyName, webUrl, shortDescription, productsCount, fullDescription, companyLogo, formMode, purpose, activeCompanyId, toast]);
 
   const submitBusinessDetails = useCallback(async (): Promise<boolean> => {
     if (!user || (!activeCompanyId && formMode !== 'create')) {
@@ -591,12 +566,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
           business_type: businessType,
           sales_type: salesType,
           business_stage: businessStage,
-          business_model: businessModel,
-          purpose: purpose,
-          revenue: revenue ? parseFloat(revenue) : null,
-          growth_rate: growthRate ? parseFloat(growthRate) : null,
-          ask: ask ? parseFloat(ask) : null,
-          ebitda: ebitda ? parseFloat(ebitda) : null
+          business_model: businessModel
         });
         
       if (error) throw error;
@@ -619,7 +589,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
     } finally {
       setIsSubmitting(false);
     }
-  }, [user, activeCompanyId, formMode, headquarters, incorporationDate, businessType, salesType, businessStage, businessModel, purpose, revenue, growthRate, ask, ebitda, toast]);
+  }, [user, activeCompanyId, formMode, headquarters, incorporationDate, businessType, salesType, businessStage, businessModel, toast]);
   
 
   const refreshCompanyData = useCallback(async () => {
@@ -789,6 +759,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       productsCount,
       fullDescription,
       companyLogo,
+      purpose,
       
       // Business details
       headquarters,
@@ -797,11 +768,6 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       salesType,
       businessStage,
       businessModel,
-      purpose,
-      revenue,
-      growthRate,
-      ask,
-      ebitda,
       
       // Industry info
       selectedIndustryCategories,
@@ -826,6 +792,7 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       setProductsCount,
       setFullDescription,
       setCompanyLogo,
+      setPurpose,
       uploadLogo,
       
       // Business details form setters
@@ -835,11 +802,6 @@ export function CompanyContextProvider({ children }: CompanyContextProviderProps
       setSalesType,
       setBusinessStage,
       setBusinessModel,
-      setPurpose,
-      setRevenue,
-      setGrowthRate,
-      setAsk,
-      setEbitda,
       
       // Industry form actions
       setSelectedIndustryCategories,

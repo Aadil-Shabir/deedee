@@ -125,9 +125,9 @@ export async function GET(request: NextRequest) {
             limit,
             totalPages: Math.ceil((count || 0) / limit),
         });
-    } catch (error) {
+    } catch (error ) {
         console.error("API Error:", error);
-        return NextResponse.json({ error: "Failed to fetch investors", details: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Failed to fetch investors", details: (error as Error).message }, { status: 500 });
     }
 }
 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     } catch (error) {
         console.error("API Error:", error);
-        return NextResponse.json({ error: "Internal server error", details: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Internal server error", details: (error as Error).message }, { status: 500 });
     }
 }
 
@@ -440,7 +440,7 @@ async function saveInvestors(investors: any[]) {
                 console.log(`   👥 Introduced by: ${inv.Introducer} (${inv.IntroducerEmail})`);
             } catch (invError) {
                 console.error(`❌ API: Error saving investor ${inv.PrimaryContactEmail}:`, invError);
-                errors.push(`Error processing ${inv.PrimaryContactEmail}: ${invError.message}`);
+                errors.push(`Error processing ${inv.PrimaryContactEmail}: ${(invError as Error).message}`);
             }
         }
 
@@ -465,7 +465,7 @@ async function saveInvestors(investors: any[]) {
         });
     } catch (error) {
         console.error("❌ API Save operation failed:", error);
-        return NextResponse.json({ error: "Save operation failed", details: error.message }, { status: 500 });
+        return NextResponse.json({ error: "Save operation failed", details: (error as Error).message }, { status: 500 });
     }
 }
 

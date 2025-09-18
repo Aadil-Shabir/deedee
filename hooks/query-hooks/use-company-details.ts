@@ -10,11 +10,6 @@ interface BusinessDetails {
   sales_type: string | null;
   business_stage: string | null;
   business_model: string | null;
-  purpose: string | null;
-  revenue: number | null;
-  growth_rate: number | null;
-  ask: number | null;
-  ebitda: number | null;
   created_at: string;
   updated_at: string;
 }

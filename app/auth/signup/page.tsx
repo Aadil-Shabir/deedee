@@ -19,7 +19,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"founder" | "investor">("founder");
+  const [role, setRole] = useState<"founder" | "investor" | "seller" | "buyer">("founder");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -39,13 +39,15 @@ export default function SignUpPage() {
     }
 
     try {
+     
       // Using the server action instead of client-side Supabase
       const result = await signup({
         email,
         password,
         firstName,
         lastName,
-        role
+        role,
+        
       });
       
       if (result.success) {
@@ -196,7 +198,7 @@ export default function SignUpPage() {
               <RadioGroup
                 defaultValue="founder"
                 value={role}
-                onValueChange={(value: "founder" | "investor") => setRole(value)}
+                onValueChange={(value: "founder" | "investor" | "seller" | "buyer") => setRole(value)}
                 className="grid grid-cols-2 gap-4"
               >
                 <div className="flex items-center space-x-2">
@@ -206,6 +208,14 @@ export default function SignUpPage() {
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="investor" id="investor" />
                   <Label htmlFor="investor">Investor</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="seller" id="seller" />
+                  <Label htmlFor="seller">Seller</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="buyer" id="buyer" />
+                  <Label htmlFor="buyer">Buyer</Label>
                 </div>
               </RadioGroup>
             </div>

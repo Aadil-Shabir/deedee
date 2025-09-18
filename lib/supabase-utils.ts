@@ -84,7 +84,7 @@ export const uploadProfilePicture = async (
       .from('profile-pictures')
       .getPublicUrl(data.path);
 
-    console.log("YEH SARA DONKEY KA DATA HAI", publicUrlData); 
+   
     
     console.log('Uploaded profile picture URL:', publicUrlData.publicUrl);
     return publicUrlData.publicUrl;
